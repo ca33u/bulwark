@@ -12,6 +12,7 @@
 ## DefaultState: enabled
 ## SavedVariables: BulwarkDB
 ## AddonCompartmentFunc: Bulwark_OnAddonCompartmentClick
+## X-Wago-ID: aND9Rp6o
 
 Locales\enUS.lua
 Locales\ruRU.lua
