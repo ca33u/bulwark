@@ -7,7 +7,7 @@
 ## Version: 2.0.0
 ## X-License: MIT
 ## X-Website: https://addicted.sh
-## IconTexture: Interface\Icons\INV_Shield_06
+## IconTexture: Interface\AddOns\Bulwark\Media\icon
 ## Category: Combat
 ## DefaultState: enabled
 ## SavedVariables: BulwarkDB

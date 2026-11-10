@@ -8,6 +8,7 @@ VERSION=$(grep -m1 '^## Version:' "$SRC/Bulwark.toc" | sed 's/## Version: *//' |
 STAGE="$(mktemp -d)"
 mkdir -p "$STAGE/Bulwark" "$SRC/dist"
 cp "$SRC/Bulwark.toc" "$SRC/LICENSE" "$SRC/README.md" "$SRC/README.en.md" "$STAGE/Bulwark/"
+mkdir -p "$STAGE/Bulwark/Media" && cp "$SRC/Media/icon.png" "$STAGE/Bulwark/Media/"
 grep -v '^##' "$SRC/Bulwark.toc" | tr -d '\r' | sed 's/\\/\//g' | while read -r file; do
   [ -z "$file" ] && continue
   mkdir -p "$STAGE/Bulwark/$(dirname "$file")"
