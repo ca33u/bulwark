@@ -81,5 +81,10 @@ Check(ok, "refresh runs " .. tostring(err or ""))
 Check(count == 1, "one overlay for the low-mana member, got " .. count)
 Check(BulwarkDB.lowMana.threshold == 30, "default threshold stored")
 
+local src = io.open("PartyMana.lua"):read("a")
+Check(src:find('SetFrameStrata("HIGH")', 1, true) ~= nil, "overlay sits above the party frames")
+Check(M.Explain("party1"):find("mana", 1, true) ~= nil, "manadebug explains a mana user: " .. M.Explain("party1"))
+Check(M.Explain("nobody") == "no unit", "manadebug: missing unit")
+
 io.write(string.format("%d tests, %d failed\n", TESTS or 0, FAILED or 0))
 os.exit((FAILED or 0) == 0 and 0 or 1)

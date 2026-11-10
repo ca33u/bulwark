@@ -11,6 +11,7 @@
 
   /bulwark lowmana        turn it on or off
   /bulwark lowmana 25     set the threshold in percent (5-90)
+  /bulwark manadebug      what Bulwark sees for each party member
 ]]
 
 local ADDON_NAME, ns = ...
@@ -82,6 +83,41 @@ function M.IsLow(fraction, threshold)
 	return type(fraction) == "number" and fraction < (threshold or 30) / 100
 end
 
+-- Why a unit is or is not highlighted (for /bulwark manadebug).
+function M.Explain(unit)
+	if not Read(UnitExists, unit) then
+		return "no unit"
+	end
+	if Read(UnitIsDeadOrGhost, unit) then
+		return "dead"
+	end
+	if Read(UnitIsConnected, unit) == false then
+		return "offline"
+	end
+	local okT, ptype = pcall(UnitPowerType, unit)
+	if not okT then
+		return "power type: error"
+	end
+	if IsSecret(ptype) then
+		return "power type hidden by the game"
+	end
+	if ptype ~= MANA then
+		return "not a mana user (power type " .. tostring(ptype) .. ")"
+	end
+	local okC, cur = pcall(UnitPower, unit, MANA)
+	local okM, max = pcall(UnitPowerMax, unit, MANA)
+	if not okC or not okM then
+		return "mana: error"
+	end
+	if IsSecret(cur) or IsSecret(max) then
+		return "mana hidden by the game (secret value)"
+	end
+	if type(max) ~= "number" or max <= 0 then
+		return "mana max " .. tostring(max)
+	end
+	return string.format("mana %d/%d = %d%%", cur, max, math.floor(cur / max * 100 + 0.5))
+end
+
 -- The mana bar inside a party frame, whatever this client calls it.
 function M.ManaBarOf(frame)
 	for _, key in ipairs({ "manabar", "ManaBar", "powerBar", "PowerBar" }) do
@@ -126,7 +162,9 @@ local function OverlayFor(frame)
 	local o = overlays[frame]
 	if not o then
 		o = CreateFrame("Frame", nil, UIParent)
-		o:SetFrameStrata("MEDIUM")
+		-- Above the party frames: at their strata the game's own bars were
+		-- drawn over the overlay and hid it.
+		o:SetFrameStrata("HIGH")
 		o.fill = o:CreateTexture(nil, "OVERLAY")
 		o.fill:SetAllPoints()
 		o.fill:SetColorTexture(1, 0.1, 0.05, 0.45)
@@ -213,7 +251,17 @@ if previous then
 	SlashCmdList.BULWARK = function(msg)
 		local cmd, rest = string.lower(msg or ""):match("^(%S*)%s*(.-)$")
 		local d = DB()
-		if cmd == "lowmana" and d then
+		if cmd == "manadebug" then
+			local find = ns.Blessings and ns.Blessings.PartyFrames
+			local list = find and find() or {}
+			print(PREFIX .. string.format(T("party frames found: %d"), #list) .. ", " .. T("low mana highlight:") .. " " .. ((d and d.enabled) and T("on") or T("off")) .. string.format(" (<%d%%)", d and d.threshold or 30))
+			for _, e in ipairs(list) do
+				local okN, name = pcall(UnitName, e.unit)
+				local bar = M.ManaBarOf(e.frame)
+				print(string.format("  %s (%s): %s; bar: %s", tostring(okN and not IsSecret(name) and name or "?"), e.unit, M.Explain(e.unit), bar and "found" or "not found"))
+			end
+			return
+		elseif cmd == "lowmana" and d then
 			local n = tonumber(rest)
 			if n then
 				d.threshold = math.min(90, math.max(5, math.floor(n)))
@@ -227,7 +275,7 @@ if previous then
 		end
 		previous(msg)
 		if cmd == "" or cmd == "help" then
-			print(T("  |cffaaaaaa/bulwark|r lowmana [percent]"))
+			print(T("  |cffaaaaaa/bulwark|r lowmana [percent] | manadebug"))
 		end
 	end
 end
