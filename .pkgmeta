@@ -1,0 +1,11 @@
+package-as: Bulwark
+
+ignore:
+  - tests
+  - install.sh
+  - package.sh
+  - SPEC.md
+  - dist
+  - .github
+  - .pkgmeta
+  - RELEASING.md
