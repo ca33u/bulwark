@@ -1,0 +1,45 @@
+## Interface: 16001
+## Interface-Camelot: 16001
+## Title: |cfff4c430Bulwark|r
+## Notes: Protection Paladin toolkit for WoW Forever: a duration line for short buffs, ability cooldowns, reminders, a swing timer, aggro list, threat-colored nameplates and party blessings.
+## Notes-ruRU: Набор прот-паладина для WoW Forever: линия коротких баффов, кулдауны способностей, напоминания, свинг-таймер, список агро, окраска неймплейтов по угрозе и благословения группы.
+## Author: addicted
+## Version: 2.0.0
+## X-License: MIT
+## X-Website: https://addicted.sh
+## IconTexture: Interface\Icons\INV_Shield_06
+## Category: Combat
+## DefaultState: enabled
+## SavedVariables: BulwarkDB
+## AddonCompartmentFunc: Bulwark_OnAddonCompartmentClick
+
+Locales\enUS.lua
+Locales\ruRU.lua
+Locales\deDE.lua
+Locales\frFR.lua
+Locales\esES.lua
+Locales\ptBR.lua
+Locales\koKR.lua
+Locales\zhTW.lua
+Core\Init.lua
+Core\Guards.lua
+Core\DB.lua
+Core\Spells.lua
+Core\Auras.lua
+Core\Widgets.lua
+Core\Line.lua
+Core\Swing.lua
+Core\Abilities.lua
+Core\Reminders.lua
+Core\Prep.lua
+Core\Mitigation.lua
+Core\Options.lua
+Core\Minimap.lua
+Core\Movers.lua
+Core\Slash.lua
+Core\Boot.lua
+Aggro.lua
+Ranks.lua
+Plates.lua
+Blessings.lua
+PartyMana.lua
