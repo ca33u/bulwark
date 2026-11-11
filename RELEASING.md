@@ -1,35 +1,35 @@
-# Выпуск новой версии
+# Releasing a new version
 
-Сборку и выкладку делает GitHub Actions (BigWigsMods/packager, файл `.github/workflows/release.yml`).
-Он собирает zip без тестов и служебных файлов (список — в `.pkgmeta`) и выкладывает его
-на **CurseForge**, **Wago Addons** и в **GitHub Releases** как файл для WoW Forever 1.60.1
-(Interface 16001 в `Bulwark.toc` распознаётся автоматически).
+Building and publishing is done by GitHub Actions (BigWigsMods/packager, file `.github/workflows/release.yml`).
+It builds a zip without the tests and internal files (the list is in `.pkgmeta`) and uploads it
+to **CurseForge**, **Wago Addons** and **GitHub Releases** as a file for WoW Forever 1.60.1
+(Interface 16001 in `Bulwark.toc` is detected automatically).
 
-## Один раз: подключить площадки
+## Once: connect the sites
 
-1. **CurseForge**: создать проект на https://authors.curseforge.com, взять его **Project ID**
-   (справа на странице проекта) и API-токен на https://legacy.curseforge.com/account/api-tokens.
-2. **Wago**: создать проект на https://addons.wago.io/developers, взять его **ID** из адреса проекта
-   и API-ключ на https://addons.wago.io/account/apikeys.
-3. Вписать ID в `Bulwark.toc`:
+1. **CurseForge**: create a project at https://authors.curseforge.com, get its **Project ID**
+   (on the right of the project page) and an API token at https://legacy.curseforge.com/account/api-tokens.
+2. **Wago**: create a project at https://addons.wago.io/developers, get its **ID** from the project URL
+   and an API key at https://addons.wago.io/account/apikeys.
+3. Put the IDs into `Bulwark.toc`:
    ```
    ## X-Curse-Project-ID: 123456
    ## X-Wago-ID: abcd1234
    ```
-4. На GitHub: **Settings → Secrets and variables → Actions → New repository secret**:
-   `CF_API_KEY` = токен CurseForge, `WAGO_API_TOKEN` = ключ Wago.
+4. On GitHub: **Settings → Secrets and variables → Actions → New repository secret**:
+   `CF_API_KEY` = the CurseForge token, `WAGO_API_TOKEN` = the Wago key.
 
-Площадка без ID или без ключа просто пропускается, релиз на GitHub всё равно создаётся.
+A site without an ID or a key is simply skipped; the GitHub release is created either way.
 
-## Каждый выпуск
+## Every release
 
-1. Поднять `## Version:` в `Bulwark.toc` (и версию в коде, если она там тоже записана).
-2. Закоммитить и отправить в `main`.
-3. Поставить тег и отправить его:
+1. Bump `## Version:` in `Bulwark.toc` (and the version in the code, if it's written there too).
+2. Commit and push to `main`.
+3. Create a tag and push it:
    ```
    git tag v1.2.3
    git push origin v1.2.3
    ```
-4. Через пару минут версия появится на всех площадках. Ход сборки — во вкладке **Actions** на GitHub.
+4. In a couple of minutes the version shows up on all sites. You can follow the build in the **Actions** tab on GitHub.
 
-Список изменений собирается из сообщений коммитов с прошлого тега.
+The changelog is built from the commit messages since the previous tag.

@@ -7,7 +7,7 @@ SRC="$(cd "$(dirname "$0")" && pwd)"
 VERSION=$(grep -m1 '^## Version:' "$SRC/Bulwark.toc" | sed 's/## Version: *//' | tr -d '\r')
 STAGE="$(mktemp -d)"
 mkdir -p "$STAGE/Bulwark" "$SRC/dist"
-cp "$SRC/Bulwark.toc" "$SRC/LICENSE" "$SRC/README.md" "$SRC/README.en.md" "$STAGE/Bulwark/"
+cp "$SRC/Bulwark.toc" "$SRC/LICENSE" "$SRC/README.md" "$SRC/README.ru.md" "$STAGE/Bulwark/"
 mkdir -p "$STAGE/Bulwark/Media/Reminders" && cp "$SRC/Media/icon.tga" "$STAGE/Bulwark/Media/" && cp "$SRC"/Media/Reminders/*.tga "$STAGE/Bulwark/Media/Reminders/"
 grep -v '^##' "$SRC/Bulwark.toc" | tr -d '\r' | sed 's/\\/\//g' | while read -r file; do
   [ -z "$file" ] && continue
