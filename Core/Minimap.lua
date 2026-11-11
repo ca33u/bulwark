@@ -15,7 +15,7 @@ local G, W, T = ns.G, ns.W, ns.T
 local MM = {}
 ns.Minimap = MM
 
-MM.ICON = "Interface\\AddOns\\Bulwark\\Media\\icon"
+MM.ICON = "Interface\\AddOns\\Bulwark\\Media\\minimap"
 
 -- Pure: position on the ring for an angle in degrees, UIParent coordinates.
 function MM.Point(angle, mx, my, width, minimapScale, uiScale)
