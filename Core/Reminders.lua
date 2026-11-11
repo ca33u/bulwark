@@ -37,7 +37,8 @@ function R.Decide(ctx)
 	local list, badges = {}, { rf = false, forbearance = false }
 	local rf = ctx.rf or {}
 	if rf.enabled and rf.known == true and rf.status == "absent" then
-		list[#list + 1] = { id = "rf", text = T("Righteous Fury missing"), icon = "fury" }
+		-- the game's own Righteous Fury icon: everyone knows it
+		list[#list + 1] = { id = "rf", text = T("Righteous Fury missing"), icon = "fury", texture = S.Get("righteous_fury").icon }
 		badges.rf = true
 	end
 	local seal = ctx.seal or {}
@@ -336,7 +337,7 @@ function R.Render()
 	local preview = movers and (movers.unlocked or movers.testing)
 	local list, badges
 	if preview then
-		list = { { id = "rf", text = T("Righteous Fury missing"), icon = "fury" }, { id = "seal", text = T("Seal missing"), icon = "seal" }, { id = "aura", text = T("No aura active"), icon = "aura" }, { id = "blessing", text = T("No blessing on yourself"), icon = "blessing" } }
+		list = { { id = "rf", text = T("Righteous Fury missing"), icon = "fury", texture = S.Get("righteous_fury").icon }, { id = "seal", text = T("Seal missing"), icon = "seal" }, { id = "aura", text = T("No aura active"), icon = "aura" }, { id = "blessing", text = T("No blessing on yourself"), icon = "blessing" } }
 		badges = { rf = true, forbearance = true }
 	elseif G.IsPaladin() and G.ShouldShow(db, "warn", "warningsOnlyInCombat", G.PlayerState()) then
 		list, badges = R.Decide(R.Context(now))

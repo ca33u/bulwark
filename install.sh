@@ -7,7 +7,7 @@ SRC="$(cd "$(dirname "$0")" && pwd)"
 DST="/Applications/World of Warcraft/_forever_/Interface/AddOns/Bulwark"
 mkdir -p "$DST"
 cp "$SRC/Bulwark.toc" "$SRC/LICENSE" "$SRC/README.md" "$SRC/README.en.md" "$DST/"
-mkdir -p "$DST/Media/Reminders" && cp "$SRC/Media/icon.png" "$DST/Media/" && cp "$SRC"/Media/Reminders/*.tga "$DST/Media/Reminders/"
+mkdir -p "$DST/Media/Reminders" && cp "$SRC/Media/icon.tga" "$DST/Media/" && cp "$SRC"/Media/Reminders/*.tga "$DST/Media/Reminders/"
 grep -v '^##' "$SRC/Bulwark.toc" | tr -d '\r' | sed 's/\\/\//g' | while read -r file; do
   [ -z "$file" ] && continue
   mkdir -p "$DST/$(dirname "$file")"
