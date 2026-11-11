@@ -317,8 +317,15 @@ local function DB()
 	if type(BulwarkDB) ~= "table" then
 		return nil
 	end
+	-- Off by default: on WoW Forever, picking up and placing spells from an
+	-- addon can be "an action only available to the Blizzard UI", and every
+	-- try shows the game's "blocked" popup. Turn it on with /bulwark autoranks.
+	if not BulwarkDB.ranksOptIn then
+		BulwarkDB.ranksOptIn = true
+		BulwarkDB.autoRanks = false
+	end
 	if BulwarkDB.autoRanks == nil then
-		BulwarkDB.autoRanks = true
+		BulwarkDB.autoRanks = false
 	end
 	if BulwarkDB.keepDownranks == nil then
 		BulwarkDB.keepDownranks = false
@@ -392,7 +399,18 @@ local function QueueScan(delay)
 end
 R.QueueScan = QueueScan
 
-frame:SetScript("OnEvent", function(_, event, spellID)
+frame:SetScript("OnEvent", function(_, event, spellID, func)
+	if event == "ADDON_ACTION_BLOCKED" or event == "ADDON_ACTION_FORBIDDEN" then
+		-- the game refused to let us place a spell: stop trying, say so once
+		local f = tostring(func or "")
+		local db = DB()
+		if spellID == ADDON_NAME and db and db.autoRanks and (f:find("Pickup") or f:find("PlaceAction") or f:find("ClearCursor")) then
+			db.autoRanks = false
+			pending = nil
+			print(PREFIX .. T("the game does not let addons place spells here: automatic rank updates are off."))
+		end
+		return
+	end
 	if event == "PLAYER_LOGIN" then
 		QueueScan(2)
 	elseif event == "PLAYER_REGEN_ENABLED" then
@@ -417,6 +435,8 @@ pcall(frame.RegisterEvent, frame, "LEARNED_SPELL_IN_SKILL_LINE")
 pcall(frame.RegisterEvent, frame, "LEARNED_SPELL_IN_TAB")
 pcall(frame.RegisterEvent, frame, "SPELL_DATA_LOAD_RESULT")
 pcall(frame.RegisterEvent, frame, "ACTIONBAR_SLOT_CHANGED")
+pcall(frame.RegisterEvent, frame, "ADDON_ACTION_BLOCKED")
+pcall(frame.RegisterEvent, frame, "ADDON_ACTION_FORBIDDEN")
 
 -- /bulwark rankscheck: every ranked spell on the bars and what it should be.
 function R.Check()

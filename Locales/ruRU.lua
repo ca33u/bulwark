@@ -82,6 +82,7 @@ ns.AddLocale("ruRU", {
 	["No blessing on yourself. Any of yours counts."] = "На вас нет благословения. Подойдёт любое ваше.",
 	["Divine Shield, Divine Protection, Blessing of Protection and Lay on Hands cannot be used on you until it fades."] = "Божественный щит, Божественная защита, Благословение защиты и Возложение рук нельзя применить на вас, пока она не спадёт.",
 	["%s left"] = "Осталось %s",
+	["the game does not let addons place spells here: automatic rank updates are off."] = "игра не даёт аддонам ставить заклинания на панели: автообновление рангов выключено.",
 	["Forbearance badge"] = "Метка Воздержанности",
 	["Sound when Seal of Fury drops in combat"] = "Звук, когда Печать ярости спадает в бою",
 	["Spell check"] = "Проверка заклинаний",
