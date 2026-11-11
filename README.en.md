@@ -18,7 +18,7 @@ On other classes the paladin parts stay hidden. The modules still work.
 
 ## Install
 
-Unzip `Bulwark-2.0.0.zip` into `World of Warcraft/_forever_/Interface/AddOns`, then `/reload`.
+Unzip `Bulwark-2.1.0.zip` into `World of Warcraft/_forever_/Interface/AddOns`, then `/reload`.
 
 ## Commands
 

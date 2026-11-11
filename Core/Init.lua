@@ -13,7 +13,7 @@ local ADDON_NAME, ns = ...
 ns = ns or {}
 
 ns.NAME = "Bulwark"
-ns.VERSION = "2.0.0"
+ns.VERSION = "2.1.0"
 ns.AUTHOR = "addicted"
 ns.WEBSITE = "addicted.sh"
 ns.WEBSITE_URL = "https://addicted.sh"

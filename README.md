@@ -24,7 +24,7 @@
 
 ## Установка
 
-Скачайте `Bulwark-2.0.0.zip` и распакуйте в `World of Warcraft/_forever_/Interface/AddOns`.
+Скачайте `Bulwark-2.1.0.zip` и распакуйте в `World of Warcraft/_forever_/Interface/AddOns`.
 
 Из исходников (`~/Develop/Bulwark`):
 
