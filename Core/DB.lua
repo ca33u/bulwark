@@ -18,11 +18,11 @@ local function RGBA(r, g, b, a)
 end
 
 ns.STYLES = { "classic", "minimal", "inset", "luminous" }
-ns.STYLE_THICKNESS = { classic = 10, minimal = 3, inset = 6, luminous = 8 }
+ns.STYLE_THICKNESS = { classic = 7, minimal = 3, inset = 6, luminous = 8 }
 
 ns.DEFAULTS = {
 	-- the line
-	x = 0, y = -140, width = 420, lineHeight = 10, scale = 1,
+	x = 0, y = -140, width = 420, lineHeight = 7, scale = 1,
 	barStyle = "classic", iconSize = 22,
 	showTimers = true, showNames = false, flashSoon = true, expireSoon = 5,
 	growRight = true, rfLastOnly = true,
