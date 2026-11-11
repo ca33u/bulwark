@@ -29,6 +29,7 @@ ns.Reminders = R
 --   dev  = { enabled, known, aura },      known: any paladin aura known;
 --                                          aura: devotion/resist/other/none/hidden
 --   forb = { enabled, status },
+--   bless = { enabled, known, status },     status: any blessing present/absent/hidden
 --   spec = "PROTECTION" / other / nil (unknown)
 -- }
 -- Returns a list of { id, text } and the badges { rf = bool, forbearance = bool }.
@@ -54,6 +55,11 @@ function R.Decide(ctx)
 	if dev.enabled and dev.known == true and dev.aura == "none" then
 		list[#list + 1] = { id = "aura", text = T("No aura active"), icon = "aura" }
 	end
+	local bless = ctx.bless or {}
+	-- any of your blessings on yourself is fine
+	if bless.enabled and bless.known == true and bless.status == "absent" then
+		list[#list + 1] = { id = "blessing", text = T("No blessing on yourself"), icon = "blessing" }
+	end
 	local forb = ctx.forb or {}
 	if forb.enabled and forb.status == "present" then
 		badges.forbearance = true
@@ -73,6 +79,33 @@ local function AnyAuraKnown()
 		end
 	end
 	return false
+end
+
+local function AnyKnown(keys)
+	for _, key in ipairs(keys) do
+		if S.IsKnown(key) == true then
+			return true
+		end
+	end
+	return false
+end
+
+-- Any of your blessings on you: "present" / "absent" / "hidden" (the last
+-- readable state is kept in combat, as for the other reminders).
+local function BlessingStatus()
+	local hidden = false
+	for _, key in ipairs(S.BLESSINGS) do
+		local st = ns.Auras.Status(key)
+		if st == "present" then
+			return "present"
+		elseif st == "hidden" then
+			hidden = true
+		end
+	end
+	if hidden and not ns.Auras.RememberedNone(S.BLESSINGS) then
+		return "hidden"
+	end
+	return "absent"
 end
 
 local function AnySealKnown()
@@ -119,6 +152,7 @@ function R.Context(now)
 		seal = { enabled = db.warnSeal, known = AnySealKnown(), status = sealStatus, expired = SealExpired(now) },
 		dev = { enabled = db.warnDevotion, known = AnyAuraKnown(), aura = aura },
 		forb = { enabled = db.warnForbearance, status = A.Status("forbearance") },
+		bless = { enabled = db.warnBlessing, known = AnyKnown(S.BLESSINGS), status = BlessingStatus() },
 	}
 end
 
@@ -138,6 +172,28 @@ R.frame = warn
 
 local ALIGN = { left = "LEFT", center = "CENTER", right = "RIGHT" }
 
+-- Each reminder has its colour from the addicted palette (ns.BRAND):
+-- Righteous Fury gold, seal ember, aura tide blue, blessing arcane violet.
+R.LOOK = {
+	rf = { brand = "gold", title = "Righteous Fury", desc = "Not on you. Without it a tank holds far less threat." },
+	seal = { brand = "ember", title = "Seal", desc = "No seal on you. Judgement and much of your damage need one." },
+	aura = { brand = "tide", title = "Aura", desc = "No paladin aura active. Any aura counts." },
+	blessing = { brand = "arcane", title = "Blessing", desc = "No blessing on yourself. Any of yours counts." },
+}
+
+local function TileEnter(self)
+	local item = self.item
+	local look = item and R.LOOK[item.id]
+	if not look then
+		return
+	end
+	GameTooltip:SetOwner(self, "ANCHOR_TOP")
+	GameTooltip:AddLine(T(look.title), 1, 0.82, 0)
+	GameTooltip:AddLine(T(look.desc), 1, 1, 1, true)
+	GameTooltip:AddLine(T(item.expired and "Ran out" or "Missing"), 1, 0.3, 0.25)
+	GameTooltip:Show()
+end
+
 -- Icons: one tile per reminder, centred above the line (Bulwark's own art).
 R.ICON_PATH = "Interface\\AddOns\\" .. (ADDON_NAME or "Bulwark") .. "\\Media\\Reminders\\"
 local tiles = {}
@@ -150,7 +206,7 @@ local function Tile(i)
 	t.glow = t:CreateTexture(nil, "BACKGROUND")
 	t.glow:SetPoint("TOPLEFT", -2, 2)
 	t.glow:SetPoint("BOTTOMRIGHT", 2, -2)
-	t.glow:SetColorTexture(0.95, 0.15, 0.08, 1)
+	t.glow:SetColorTexture(1, 1, 1, 1)
 	t.edge = t:CreateTexture(nil, "BORDER")
 	t.edge:SetAllPoints()
 	t.edge:SetColorTexture(0, 0, 0, 1)
@@ -160,6 +216,9 @@ local function Tile(i)
 	t.icon:SetTexCoord(0.06, 0.94, 0.06, 0.94)
 	t.mark = W.Text(t, nil, 11)
 	t.mark:SetPoint("BOTTOMRIGHT", -1, 1)
+	t:EnableMouse(true)
+	t:SetScript("OnEnter", TileEnter)
+	t:SetScript("OnLeave", function() GameTooltip:Hide() end)
 	t:Hide()
 	tiles[i] = t
 	return t
@@ -185,7 +244,12 @@ function R.ShowIcons(list, now)
 		else
 			t:SetPoint("BOTTOMLEFT", warn, "BOTTOM", -total / 2 + (i - 1) * (size + gap), 0)
 		end
+		t.item = item
 		t.icon:SetTexture(R.ICON_PATH .. (item.icon or "seal"))
+		local look = R.LOOK[item.id]
+		local brand = ns.BRAND or {}
+		local g = brand[look and look.brand or "ember"] or { { 0.96, 0.77, 0.19, 1 }, { 1, 0.22, 0.15, 1 } }
+		W.Gradient(t.glow, "VERTICAL", g[2], g[1]) -- light on top
 		t.glow:SetAlpha(pulse)
 		-- a seal that just ran out gets a small "!"
 		W.SetFontSize(t.mark, math.max(10, math.floor(size / 2.6)))
@@ -258,7 +322,7 @@ function R.Render()
 	local preview = movers and (movers.unlocked or movers.testing)
 	local list, badges
 	if preview then
-		list = { { id = "rf", text = T("Righteous Fury missing"), icon = "fury" }, { id = "seal", text = T("Seal missing"), icon = "seal" }, { id = "aura", text = T("No aura active"), icon = "aura" } }
+		list = { { id = "rf", text = T("Righteous Fury missing"), icon = "fury" }, { id = "seal", text = T("Seal missing"), icon = "seal" }, { id = "aura", text = T("No aura active"), icon = "aura" }, { id = "blessing", text = T("No blessing on yourself"), icon = "blessing" } }
 		badges = { rf = true, forbearance = true }
 	elseif G.IsPaladin() and G.ShouldShow(db, "warn", "warningsOnlyInCombat", G.PlayerState()) then
 		list, badges = R.Decide(R.Context(now))

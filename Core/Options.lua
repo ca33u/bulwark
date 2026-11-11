@@ -506,6 +506,7 @@ do
 	CheckKey(p, 1, "warnRighteousFury", T("Righteous Fury missing"))
 	CheckKey(p, 1, "warnSeal", T("Seal missing"))
 	CheckKey(p, 1, "warnDevotion", T("No aura active"))
+	CheckKey(p, 1, "warnBlessing", T("No blessing on yourself"))
 	CheckKey(p, 1, "rfBadge", T("Righteous Fury icon next to the text"))
 	CheckKey(p, 1, "warnForbearance", T("Forbearance badge"))
 	CheckKey(p, 1, "warnIcons", T("Icons instead of text"))

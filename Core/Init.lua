@@ -14,6 +14,15 @@ ns = ns or {}
 
 ns.NAME = "Bulwark"
 ns.VERSION = "2.1.0"
+
+-- The addicted palette, shared by our addons (Bulwark, Campfire, ...):
+-- { start, end } of each gradient; "ember" is the Bulwark bar itself.
+ns.BRAND = {
+	gold = { { 0.96, 0.77, 0.19, 1 }, { 1.00, 0.90, 0.45, 1 } },
+	ember = { { 0.96, 0.77, 0.19, 1 }, { 1.00, 0.22, 0.15, 1 } },
+	tide = { { 0.15, 0.45, 1.00, 1 }, { 0.35, 0.90, 1.00, 1 } },
+	arcane = { { 0.55, 0.30, 1.00, 1 }, { 0.95, 0.45, 0.95, 1 } },
+}
 ns.AUTHOR = "addicted"
 ns.WEBSITE = "addicted.sh"
 ns.WEBSITE_URL = "https://addicted.sh"

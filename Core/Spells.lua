@@ -89,6 +89,20 @@ S.CATALOG = {
 	lay_on_hands = { name = "Lay on Hands", cd = 3600, readyDefault = false,
 		ids = { 633, 2800, 10310 }, icon = "Spell_Holy_LayOnHands" },
 
+	-- blessings you keep on yourself (the "no blessing" reminder); greater ones count too
+	bless_might = { name = "Blessing of Might", alt = { "Greater Blessing of Might" }, blessing = true,
+		ids = Ids(19740, Range(19834, 19838), 25291, 25782, 25916), icon = "Spell_Holy_FistOfJustice" },
+	bless_wisdom = { name = "Blessing of Wisdom", alt = { "Greater Blessing of Wisdom" }, blessing = true,
+		ids = Ids(19742, 19850, Range(19852, 19854), 25290, 25894, 25918), icon = "Spell_Holy_SealOfWisdom" },
+	bless_kings = { name = "Blessing of Kings", alt = { "Greater Blessing of Kings" }, blessing = true,
+		ids = { 20217, 25898 }, icon = "Spell_Magic_MageArmor" },
+	bless_salvation = { name = "Blessing of Salvation", alt = { "Greater Blessing of Salvation" }, blessing = true,
+		ids = { 1038, 25895 }, icon = "Spell_Holy_SealOfSalvation" },
+	bless_light = { name = "Blessing of Light", alt = { "Greater Blessing of Light" }, blessing = true,
+		ids = { 19977, 19978, 19979, 25890 }, icon = "Spell_Holy_PrayerOfHealing02" },
+	bless_sanctuary = { name = "Blessing of Sanctuary", alt = { "Greater Blessing of Sanctuary" }, blessing = true,
+		ids = { 20911, 20912, 20913, 20914, 25899 }, icon = "Spell_Nature_LightningShield" },
+
 	-- not on the line or the icon row
 	devotion_aura = { name = "Devotion Aura", ids = { 465, 10290, 643, 10291, 1032, 10292, 10293 }, icon = "Spell_Holy_DevotionAura" },
 	forbearance = { name = "Forbearance", ids = { 25771 }, harmful = true, icon = "Spell_Holy_RemoveCurse" },
@@ -113,6 +127,9 @@ S.READY = {
 }
 S.SEALS = {
 	"seal_fury", "seal_righteousness", "seal_command", "seal_justice", "seal_light", "seal_wisdom", "seal_crusader",
+}
+S.BLESSINGS = {
+	"bless_might", "bless_wisdom", "bless_kings", "bless_salvation", "bless_light", "bless_sanctuary",
 }
 S.AURAS = {
 	"devotion_aura", "fire_res_aura", "frost_res_aura", "shadow_res_aura",

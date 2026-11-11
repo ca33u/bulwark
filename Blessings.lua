@@ -527,16 +527,18 @@ end
 
 local holders = {} -- [blizzard frame] = holder
 
-local CLASS_W = ICON + 6 -- class icon column before the blessings
+-- party frame icons: 25% larger than the panel rows
+local PICON = math.floor(ICON * 1.25 + 0.5)
+local CLASS_W = PICON + 6 -- class icon column before the blessings
 
 local function MakeHolder()
 	local h = CreateFrame("Frame", nil, UIParent)
-	h:SetSize(CLASS_W + 4 * (ICON + 6), ICON + 14)
+	h:SetSize(CLASS_W + 4 * (PICON + 6), PICON + 14)
 	h:SetFrameStrata("MEDIUM")
 
 	-- Class icon with a class-coloured border.
 	h.class = CreateFrame("Frame", nil, h)
-	h.class:SetSize(ICON + 2, ICON + 2)
+	h.class:SetSize(PICON + 2, PICON + 2)
 	h.class:SetPoint("TOPLEFT", 0, 0)
 	h.class.border = h.class:CreateTexture(nil, "BACKGROUND")
 	h.class.border:SetAllPoints()
@@ -549,8 +551,8 @@ local function MakeHolder()
 	h.icons = {}
 	for k = 1, 4 do
 		local f = CreateFrame("Frame", nil, h)
-		f:SetSize(ICON + 2, ICON + 2)
-		f:SetPoint("TOPLEFT", CLASS_W + (k - 1) * (ICON + 6), 0)
+		f:SetSize(PICON + 2, PICON + 2)
+		f:SetPoint("TOPLEFT", CLASS_W + (k - 1) * (PICON + 6), 0)
 		f.border = f:CreateTexture(nil, "BACKGROUND")
 		f.border:SetAllPoints()
 		f.tex = f:CreateTexture(nil, "ARTWORK")
@@ -565,13 +567,13 @@ local function MakeHolder()
 	end
 	-- Red cross (the game's ready-check "not ready" icon) when there is no blessing.
 	h.missing = h:CreateTexture(nil, "OVERLAY")
-	h.missing:SetSize(ICON, ICON)
+	h.missing:SetSize(PICON, PICON)
 	h.missing:SetPoint("TOPLEFT", CLASS_W + 1, -1)
 	h.missing:SetTexture("Interface\\RaidFrame\\ReadyCheck-NotReady")
 	h.missing:Hide()
 	-- The blessing this class wants, greyed, under a small red cross.
 	h.want = h:CreateTexture(nil, "ARTWORK")
-	h.want:SetSize(ICON, ICON)
+	h.want:SetSize(PICON, PICON)
 	h.want:SetPoint("TOPLEFT", CLASS_W + 1, -1)
 	h.want:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 	h.want:Hide()
@@ -644,12 +646,12 @@ local function PaintHolder(h, row, now)
 		h.want:SetVertexColor(0.8, 0.8, 0.8)
 		h.want:Show()
 		h.missing:ClearAllPoints()
-		h.missing:SetSize(ICON * 0.7, ICON * 0.7)
+		h.missing:SetSize(PICON * 0.7, PICON * 0.7)
 		h.missing:SetPoint("BOTTOMRIGHT", h.want, "BOTTOMRIGHT", 4, -4)
 	else
 		h.want:Hide()
 		h.missing:ClearAllPoints()
-		h.missing:SetSize(ICON, ICON)
+		h.missing:SetSize(PICON, PICON)
 		h.missing:SetPoint("TOPLEFT", CLASS_W + 1, -1)
 	end
 	h.missing:SetShown(row.state == "none")
