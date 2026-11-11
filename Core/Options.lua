@@ -519,7 +519,6 @@ do
 	CycleKey(p, 2, "warnAlign", T("Align to the bar"), ALIGNS)
 	SliderKey(p, 2, "warnOffX", T("Horizontal offset"), -400, 400, 1)
 	SliderKey(p, 2, "warnOffY", T("Vertical offset"), -300, 300, 1)
-	SliderKey(p, 2, "badgeSize", T("Badge size"), 16, 64, 1)
 
 	Section(p, T("TEXT COLOR"))
 	ColorSliders(p, function()

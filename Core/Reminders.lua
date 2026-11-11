@@ -214,6 +214,7 @@ local function Badge(name, icon, label)
 	b.label:SetPoint("TOP", b, "BOTTOM", 0, -2)
 	b.label:SetText(label)
 	b.label:SetTextColor(1, 0.35, 0.3)
+	b.label:Hide() -- the icon says it; the name only while moving badges (/bulwark unlock)
 	b.time = W.Text(b, nil, 12)
 	b.time:SetPoint("CENTER")
 	b:Hide()
@@ -241,7 +242,8 @@ function R.Apply()
 
 	for _, pair in ipairs({ { rfBadge, "badgeRFX", "badgeRFY" }, { forbBadge, "badgeForbX", "badgeForbY" } }) do
 		local b = pair[1]
-		b:SetSize(db.badgeSize, db.badgeSize)
+		-- same size as the ability icons under the line
+		b:SetSize(db.readyIconSize, db.readyIconSize)
 		b:ClearAllPoints()
 		b:SetPoint("CENTER", UIParent, "CENTER", db[pair[2]], db[pair[3]])
 	end
@@ -280,6 +282,8 @@ function R.Render()
 	end
 
 	-- The RF icon repeats the red text, so it is off unless asked for.
+	rfBadge.label:SetShown(preview and true or false)
+	forbBadge.label:SetShown(preview and true or false)
 	rfBadge:SetShown(badges.rf and ns.DB().rfBadge and true or false)
 	forbBadge:SetShown(badges.forbearance and true or false)
 	local fd = ns.Auras.data.forbearance
