@@ -4,7 +4,7 @@
 ## Notes: Protection Paladin toolkit for WoW Forever: a duration line for short buffs, ability cooldowns, reminders, a swing timer, aggro list, threat-colored nameplates and party blessings.
 ## Notes-ruRU: Набор прот-паладина для WoW Forever: линия коротких баффов, кулдауны способностей, напоминания, свинг-таймер, список агро, окраска неймплейтов по угрозе и благословения группы.
 ## Author: addicted
-## Version: 2.2.0
+## Version: 2.3.0
 ## X-License: MIT
 ## X-Website: https://addicted.sh
 ## IconTexture: Interface\AddOns\Bulwark\Media\icon

@@ -26,7 +26,7 @@ On other classes the paladin parts are hidden, while the modules (aggro, namepla
 
 ## Installation
 
-Download `Bulwark-2.2.0.zip` and unzip it into `World of Warcraft/_forever_/Interface/AddOns`.
+Download `Bulwark-2.3.0.zip` and unzip it into `World of Warcraft/_forever_/Interface/AddOns`.
 
 From source (`~/Develop/Bulwark`):
 

@@ -13,7 +13,7 @@ local ADDON_NAME, ns = ...
 ns = ns or {}
 
 ns.NAME = "Bulwark"
-ns.VERSION = "2.2.0"
+ns.VERSION = "2.3.0"
 
 -- The addicted palette, shared by our addons (Bulwark, Campfire, ...):
 -- { start, end } of each gradient; "ember" is the Bulwark bar itself.
