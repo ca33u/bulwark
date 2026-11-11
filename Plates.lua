@@ -201,52 +201,76 @@ local function UnitOf(frame)
 	return unit
 end
 
-local function SetBarColor(frame, r, g, b)
-	local bar = frame.healthBar
-	if type(bar) ~= "table" or type(bar.SetStatusBarColor) ~= "function" then
-		return
+-- Bulwark never changes the game's nameplates (setting their colors in
+-- combat taints them, and the game then blocks its own nameplate code and
+-- blames Bulwark). Instead each plate gets our own small frame with one
+-- texture laid over the filled part of the health bar. Our frame is a
+-- child of the plate so it moves, scales and hides with it.
+local overlays = {} -- plate -> our frame
+P.overlays = overlays
+
+local function Overlay(plate, frame)
+	local o = overlays[plate]
+	if not o then
+		o = CreateFrame("Frame", nil, plate)
+		o.tex = o:CreateTexture(nil, "OVERLAY")
+		o.tex:SetTexture("Interface\\TargetingFrame\\UI-StatusBar")
+		overlays[plate] = o
 	end
-	pcall(bar.SetStatusBarColor, bar, r, g, b)
+	local bar = frame.healthBar
+	local fill = type(bar) == "table" and type(bar.GetStatusBarTexture) == "function" and Read(bar.GetStatusBarTexture, bar)
+	if type(fill) ~= "table" then
+		return nil
+	end
+	o:SetFrameLevel((Read(bar.GetFrameLevel, bar) or 1) + 2)
+	o:SetAllPoints(bar)
+	o.tex:ClearAllPoints()
+	o.tex:SetAllPoints(fill)
+	return o
 end
 
--- Puts back the color Blizzard last chose. Blizzard caches it in healthBar.r/g/b.
--- Calling CompactUnitFrame_UpdateHealthColor from here would run Blizzard code
--- from addon code and taint the nameplate ("blocked action"), so only read.
-local function RestoreDefault(frame)
-	if not painted[frame] then
-		return
+local function Clear(plate)
+	local o = overlays[plate]
+	if o then
+		o:Hide()
+		o.on = false
 	end
-	painted[frame] = nil
+	painted[plate] = nil
+end
+
+function P.Paint(frame, plate)
 	if P.IsForbidden(frame) then
 		return
 	end
-	local bar = frame.healthBar
-	if type(bar) ~= "table" or type(bar.SetStatusBarColor) ~= "function" then
+	local d = DB()
+	plate = plate or Read(frame.GetParent, frame)
+	if not plate then
 		return
 	end
-	local r, g, b = SafeGet(bar, "r"), SafeGet(bar, "g"), SafeGet(bar, "b")
-	if type(r) == "number" and type(g) == "number" and type(b) == "number" then
-		pcall(bar.SetStatusBarColor, bar, r, g, b)
-	end
-end
-
-function P.Paint(frame)
-	local d = DB()
 	if not d or not d.enabled then
+		Clear(plate)
 		return
 	end
 	local unit = UnitOf(frame)
 	if not unit then
+		Clear(plate)
 		return
 	end
 	local state = P.StateFor(unit)
 	if not state then
-		RestoreDefault(frame)
+		Clear(plate)
+		return
+	end
+	local o = Overlay(plate, frame)
+	if not o then
 		return
 	end
 	local c = COLORS[state]
-	SetBarColor(frame, c[1], c[2], c[3])
-	painted[frame] = true
+	o.tex:SetVertexColor(c[1], c[2], c[3], 1)
+	o.color = c
+	o.on = true
+	o:Show()
+	painted[plate] = true
 end
 
 function P.PaintAll()
@@ -260,31 +284,20 @@ function P.PaintAll()
 	for i = 1, #plates do
 		local frame = PlateUnitFrame(plates[i])
 		if frame then
-			P.Paint(frame)
+			P.Paint(frame, plates[i])
 		end
 	end
 end
 
 function P.RestoreAll()
-	for frame in pairs(painted) do
-		RestoreDefault(frame)
+	for plate in pairs(overlays) do
+		Clear(plate)
 	end
 end
 
 ------------------------------------------------------------------------
 -- Updates
 ------------------------------------------------------------------------
-
--- Blizzard repaints the bar on every health update; repaint right after it.
-if type(hooksecurefunc) == "function" and type(CompactUnitFrame_UpdateHealthColor) == "function" then
-	hooksecurefunc("CompactUnitFrame_UpdateHealthColor", function(frame)
-		-- This also runs for party/raid frames and forbidden nameplates.
-		if P.IsForbidden(frame) then
-			return
-		end
-		P.Paint(frame)
-	end)
-end
 
 local ticker = CreateFrame("Frame")
 local acc = 0
@@ -320,7 +333,16 @@ events:SetScript("OnEvent", function(_, event, unit)
 			local ok, plate = pcall(C_NamePlate.GetNamePlateForUnit, unit)
 			local frame = ok and PlateUnitFrame(plate)
 			if frame then
-				P.Paint(frame)
+				P.Paint(frame, plate)
+			end
+		end
+		return
+	end
+	if event == "NAME_PLATE_UNIT_REMOVED" and type(unit) == "string" and not IsSecret(unit) then
+		if C_NamePlate and type(C_NamePlate.GetNamePlateForUnit) == "function" then
+			local ok, plate = pcall(C_NamePlate.GetNamePlateForUnit, unit)
+			if ok and plate then
+				Clear(plate)
 			end
 		end
 		return
@@ -328,6 +350,7 @@ events:SetScript("OnEvent", function(_, event, unit)
 	P.PaintAll()
 end)
 events:RegisterEvent("PLAYER_LOGIN")
+pcall(events.RegisterEvent, events, "NAME_PLATE_UNIT_REMOVED")
 events:RegisterEvent("PLAYER_REGEN_DISABLED")
 events:RegisterEvent("PLAYER_REGEN_ENABLED")
 pcall(events.RegisterEvent, events, "NAME_PLATE_UNIT_ADDED")

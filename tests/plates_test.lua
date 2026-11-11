@@ -53,12 +53,13 @@ function UnitInRaid()
 	return false
 end
 
-local painted = {}
+local touched = 0 -- calls on Blizzard's own bar: must stay 0
 local function Frame(unit)
-	-- r, g, b mimic Blizzard's cached default color (grey-red for hostiles).
-	return { unit = unit, healthBar = { r = 0.9, g = 0.1, b = 0.1, SetStatusBarColor = function(_, r, g, b)
-		painted[unit] = { r, g, b }
-	end } }
+	return { unit = unit, healthBar = {
+		SetStatusBarColor = function() touched = touched + 1 end,
+		GetStatusBarTexture = function() return {} end,
+		GetFrameLevel = function() return 1 end,
+	} }
 end
 local frames = {}
 for i = 1, 6 do
@@ -95,22 +96,25 @@ Check(P.StateFor("nameplate5") == P.STATE_SECURE, "secret threat but targeting m
 Check(P.StateFor("nameplate6") == P.STATE_INSECURE, "plate 6 insecure")
 Check(P.StateFor("nameplate9") == nil, "missing unit untouched")
 
--- PaintAll
+-- PaintAll: our own overlay on each plate, Blizzard's bar untouched
+local function ColorOf(i)
+	local o = P.overlays[frames[i]]
+	return o and o.on and o.color or nil
+end
 P.PaintAll()
-Check(painted.nameplate1 and painted.nameplate1[2] > 0.8, "plate 1 painted green")
-Check(painted.nameplate2 and painted.nameplate2[1] == 1 and painted.nameplate2[2] < 0.3, "plate 2 painted red")
-Check(painted.nameplate3 == nil, "player plate not painted")
-Check(painted.nameplate4 == nil, "out-of-combat plate not painted")
+Check(ColorOf(1) and ColorOf(1)[2] > 0.8, "plate 1 painted green")
+Check(ColorOf(2) and ColorOf(2)[1] == 1 and ColorOf(2)[2] < 0.3, "plate 2 painted red")
+Check(ColorOf(3) == nil, "player plate not painted")
+Check(ColorOf(4) == nil, "out-of-combat plate not painted")
+Check(touched == 0, "the game's nameplate bar is never touched (no taint)")
 
--- Toggle off restores painted frames
+-- Toggle off hides our overlays
 BulwarkDB.plates.enabled = false
 P.RestoreAll()
 Check(restored == 0, "restore never calls Blizzard code (taint), got " .. restored)
-Check(painted.nameplate1[1] == 0.9 and painted.nameplate1[2] == 0.1, "restore puts back Blizzard's cached color")
-Check(painted.nameplate3 == nil, "restore leaves never-painted plates alone")
-painted = {}
+Check(ColorOf(1) == nil and ColorOf(2) == nil, "turned off: overlays hidden")
 P.PaintAll()
-Check(next(painted) == nil, "disabled paints nothing")
+Check(ColorOf(1) == nil and touched == 0, "disabled paints nothing")
 
 -- Nameplate CVar reset: Threat Plates left alpha 0 and enemies hidden.
 local cvars = { nameplateMinAlpha = "0", nameplateShowEnemies = "0", nameplateGlobalScale = "0.4" }
