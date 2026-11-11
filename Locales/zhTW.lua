@@ -73,6 +73,7 @@ ns.AddLocale("zhTW", {
 	["Seal missing"] = "缺少聖印",
 	["Devotion Aura missing"] = "缺少虔誠光環",
 	["No aura active"] = "未啟用任何光環",
+	["Icons instead of text"] = "以圖示取代文字",
 	["Forbearance badge"] = "自律標記",
 	["Sound when Seal of Fury drops in combat"] = "戰鬥中憤怒聖印消失時播放音效",
 	["Spell check"] = "法術檢查",

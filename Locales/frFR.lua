@@ -73,6 +73,7 @@ ns.AddLocale("frFR", {
 	["Seal missing"] = "Sceau absent",
 	["Devotion Aura missing"] = "Aura de dévotion absente",
 	["No aura active"] = "Aucune aura active",
+	["Icons instead of text"] = "Icônes au lieu du texte",
 	["Forbearance badge"] = "Badge Longanimité",
 	["Sound when Seal of Fury drops in combat"] = "Son quand Sceau de fureur disparaît en combat",
 	["Spell check"] = "Vérification des sorts",

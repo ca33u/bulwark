@@ -50,6 +50,7 @@ ns.DEFAULTS = {
 	rfBadge = false, -- the separate RF icon; the red text already says it
 	soundSealDrop = true,
 	warnSize = 16, warnOffX = 0, warnOffY = 8, warnAlign = "center",
+	warnIcons = true, -- Bulwark's own icons above the line instead of red text
 	warnColor = RGBA(1, 0.25, 0.15, 1),
 	badgeRFX = -250, badgeRFY = -140, badgeForbX = 250, badgeForbY = -140, badgeSize = 34,
 	warningsOnlyInCombat = false,

@@ -73,6 +73,7 @@ ns.AddLocale("koKR", {
 	["Seal missing"] = "문장 없음",
 	["Devotion Aura missing"] = "기원의 오라 없음",
 	["No aura active"] = "활성화된 오라 없음",
+	["Icons instead of text"] = "텍스트 대신 아이콘",
 	["Forbearance badge"] = "참음 배지",
 	["Sound when Seal of Fury drops in combat"] = "전투 중 격노의 문장이 사라지면 소리 재생",
 	["Spell check"] = "주문 확인",

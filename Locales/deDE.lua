@@ -73,6 +73,7 @@ ns.AddLocale("deDE", {
 	["Seal missing"] = "Siegel fehlt",
 	["Devotion Aura missing"] = "Aura der Hingabe fehlt",
 	["No aura active"] = "Keine Aura aktiv",
+	["Icons instead of text"] = "Symbole statt Text",
 	["Forbearance badge"] = "Vorahnung-Plakette",
 	["Sound when Seal of Fury drops in combat"] = "Ton, wenn Siegel des Zorns im Kampf ausläuft",
 	["Spell check"] = "Zauberprüfung",

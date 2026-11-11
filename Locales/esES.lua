@@ -73,6 +73,7 @@ ns.AddLocale({ "esES", "esMX" }, {
 	["Seal missing"] = "Falta el sello",
 	["Devotion Aura missing"] = "Falta Aura de devoción",
 	["No aura active"] = "Ninguna aura activa",
+	["Icons instead of text"] = "Iconos en lugar de texto",
 	["Forbearance badge"] = "Insignia de Abstinencia",
 	["Sound when Seal of Fury drops in combat"] = "Sonido cuando Sello de furia expira en combate",
 	["Spell check"] = "Comprobar hechizos",

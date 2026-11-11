@@ -73,6 +73,7 @@ ns.AddLocale("ruRU", {
 	["Seal missing"] = "Нет печати",
 	["Devotion Aura missing"] = "Нет Ауры благочестия",
 	["No aura active"] = "Нет активной ауры",
+	["Icons instead of text"] = "Иконки вместо текста",
 	["Forbearance badge"] = "Метка Воздержанности",
 	["Sound when Seal of Fury drops in combat"] = "Звук, когда Печать ярости спадает в бою",
 	["Spell check"] = "Проверка заклинаний",

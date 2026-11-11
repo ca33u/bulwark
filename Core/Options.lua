@@ -508,6 +508,7 @@ do
 	CheckKey(p, 1, "warnDevotion", T("No aura active"))
 	CheckKey(p, 1, "rfBadge", T("Righteous Fury icon next to the text"))
 	CheckKey(p, 1, "warnForbearance", T("Forbearance badge"))
+	CheckKey(p, 1, "warnIcons", T("Icons instead of text"))
 	CheckKey(p, 1, "soundSealDrop", T("Sound when Seal of Fury drops in combat"))
 	ButtonAt(p, 1, T("Spell check"), 180, function()
 		ns.Reminders.SpellCheck()

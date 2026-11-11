@@ -1,5 +1,6 @@
 --[[
-  Bulwark core: reminders (red text above the line) and badges.
+  Bulwark core: reminders above the line (Bulwark's own icons with a
+  pulsing red frame, or red text if you prefer) and badges.
 
     Righteous Fury missing   known, and the buff is confirmed absent
     Seal missing             a seal is known, none confirmed on you (any spec)
@@ -35,7 +36,7 @@ function R.Decide(ctx)
 	local list, badges = {}, { rf = false, forbearance = false }
 	local rf = ctx.rf or {}
 	if rf.enabled and rf.known == true and rf.status == "absent" then
-		list[#list + 1] = { id = "rf", text = T("Righteous Fury missing") }
+		list[#list + 1] = { id = "rf", text = T("Righteous Fury missing"), icon = "fury" }
 		badges.rf = true
 	end
 	local seal = ctx.seal or {}
@@ -43,15 +44,15 @@ function R.Decide(ctx)
 	-- fights with a seal.
 	if seal.enabled and seal.known == true and seal.status == "absent" then
 		if seal.expired then
-			list[#list + 1] = { id = "seal", text = T("Seal timer expired") }
+			list[#list + 1] = { id = "seal", text = T("Seal timer expired"), icon = "seal", expired = true }
 		else
-			list[#list + 1] = { id = "seal", text = T("Seal missing") }
+			list[#list + 1] = { id = "seal", text = T("Seal missing"), icon = "seal" }
 		end
 	end
 	local dev = ctx.dev or {}
 	-- Any aura is fine; only "no aura at all" is worth a reminder, in any spec.
 	if dev.enabled and dev.known == true and dev.aura == "none" then
-		list[#list + 1] = { id = "aura", text = T("No aura active") }
+		list[#list + 1] = { id = "aura", text = T("No aura active"), icon = "aura" }
 	end
 	local forb = ctx.forb or {}
 	if forb.enabled and forb.status == "present" then
@@ -127,6 +128,68 @@ warn.text:SetJustifyH("CENTER")
 warn:Hide()
 R.frame = warn
 
+local ALIGN = { left = "LEFT", center = "CENTER", right = "RIGHT" }
+
+-- Icons: one tile per reminder, centred above the line (Bulwark's own art).
+R.ICON_PATH = "Interface\\AddOns\\" .. (ADDON_NAME or "Bulwark") .. "\\Media\\Reminders\\"
+local tiles = {}
+
+local function Tile(i)
+	if tiles[i] then
+		return tiles[i]
+	end
+	local t = CreateFrame("Frame", nil, warn)
+	t.glow = t:CreateTexture(nil, "BACKGROUND")
+	t.glow:SetPoint("TOPLEFT", -2, 2)
+	t.glow:SetPoint("BOTTOMRIGHT", 2, -2)
+	t.glow:SetColorTexture(0.95, 0.15, 0.08, 1)
+	t.edge = t:CreateTexture(nil, "BORDER")
+	t.edge:SetAllPoints()
+	t.edge:SetColorTexture(0, 0, 0, 1)
+	t.icon = t:CreateTexture(nil, "ARTWORK")
+	t.icon:SetPoint("TOPLEFT", 1, -1)
+	t.icon:SetPoint("BOTTOMRIGHT", -1, 1)
+	t.icon:SetTexCoord(0.06, 0.94, 0.06, 0.94)
+	t.mark = W.Text(t, nil, 11)
+	t.mark:SetPoint("BOTTOMRIGHT", -1, 1)
+	t:Hide()
+	tiles[i] = t
+	return t
+end
+
+-- Lays out the icon tiles for the active reminders; returns how many.
+function R.ShowIcons(list, now)
+	local db = ns.DB()
+	local size = math.floor(db.warnSize * 2 + 0.5)
+	local gap = math.max(4, math.floor(size / 6))
+	local total = #list * size + math.max(0, #list - 1) * gap
+	local point = ALIGN[db.warnAlign] or "CENTER"
+	-- a slow pulse on the red frame: it catches the eye without words
+	local pulse = 0.55 + 0.45 * math.abs(math.sin((now or 0) * 3))
+	for i, item in ipairs(list) do
+		local t = Tile(i)
+		t:SetSize(size, size)
+		t:ClearAllPoints()
+		if point == "LEFT" then
+			t:SetPoint("BOTTOMLEFT", warn, "BOTTOMLEFT", (i - 1) * (size + gap), 0)
+		elseif point == "RIGHT" then
+			t:SetPoint("BOTTOMRIGHT", warn, "BOTTOMRIGHT", -(#list - i) * (size + gap), 0)
+		else
+			t:SetPoint("BOTTOMLEFT", warn, "BOTTOM", -total / 2 + (i - 1) * (size + gap), 0)
+		end
+		t.icon:SetTexture(R.ICON_PATH .. (item.icon or "seal"))
+		t.glow:SetAlpha(pulse)
+		-- a seal that just ran out gets a small "!"
+		W.SetFontSize(t.mark, math.max(10, math.floor(size / 2.6)))
+		t.mark:SetText(item.expired and "|cffffd100!|r" or "")
+		t:Show()
+	end
+	for i = #list + 1, #tiles do
+		tiles[i]:Hide()
+	end
+	return #list
+end
+
 local function Badge(name, icon, label)
 	local b = CreateFrame("Frame", name, UIParent)
 	b:SetFrameStrata("MEDIUM")
@@ -153,7 +216,6 @@ local rfBadge = Badge("BulwarkBadgeRF", S.Get("righteous_fury").icon, T("Righteo
 local forbBadge = Badge("BulwarkBadgeForbearance", S.Get("forbearance").icon, T("Forbearance"))
 R.rfBadge, R.forbBadge = rfBadge, forbBadge
 
-local ALIGN = { left = "LEFT", center = "CENTER", right = "RIGHT" }
 
 function R.Apply()
 	local db = ns.DB()
@@ -164,7 +226,8 @@ function R.Apply()
 	warn.text:ClearAllPoints()
 	warn.text:SetPoint("BOTTOM" .. (point == "CENTER" and "" or point), warn, "BOTTOM" .. (point == "CENTER" and "" or point))
 	warn.text:SetJustifyH(point)
-	warn:SetSize(math.max(200, db.width * db.scale), db.warnSize + 4)
+	local tall = db.warnIcons and math.floor(db.warnSize * 2 + 0.5) or (db.warnSize + 4)
+	warn:SetSize(math.max(200, db.width * db.scale), tall)
 	warn:ClearAllPoints()
 	warn:SetPoint("BOTTOM", ns.Line.frame, "TOP", db.warnOffX, db.warnOffY)
 
@@ -185,7 +248,7 @@ function R.Render()
 	local preview = movers and (movers.unlocked or movers.testing)
 	local list, badges
 	if preview then
-		list = { { id = "rf", text = T("Righteous Fury missing") }, { id = "seal", text = T("Seal missing") } }
+		list = { { id = "rf", text = T("Righteous Fury missing"), icon = "fury" }, { id = "seal", text = T("Seal missing"), icon = "seal" }, { id = "aura", text = T("No aura active"), icon = "aura" } }
 		badges = { rf = true, forbearance = true }
 	elseif G.IsPaladin() and G.ShouldShow(db, "warn", "warningsOnlyInCombat", G.PlayerState()) then
 		list, badges = R.Decide(R.Context(now))
@@ -194,16 +257,18 @@ function R.Render()
 	end
 	R.active = list
 
-	local lines = {}
-	for i, item in ipairs(list) do
-		lines[i] = item.text
-	end
-	if #lines > 0 then
-		warn.text:SetText(table.concat(lines, "\n"))
-		warn:Show()
-	else
+	if db.warnIcons then
 		warn.text:SetText("")
-		warn:Hide()
+		R.ShowIcons(list, now)
+		warn:SetShown(#list > 0)
+	else
+		R.ShowIcons({}, now)
+		local lines = {}
+		for i, item in ipairs(list) do
+			lines[i] = item.text
+		end
+		warn.text:SetText(table.concat(lines, "\n"))
+		warn:SetShown(#lines > 0)
 	end
 
 	-- The RF icon repeats the red text, so it is off unless asked for.
