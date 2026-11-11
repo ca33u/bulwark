@@ -84,6 +84,8 @@ ns.AddLocale("ruRU", {
 	["No seal on you. Judgement and much of your damage need one."] = "На вас нет печати. Без неё не работает Правосудие и падает урон.",
 	["No paladin aura active. Any aura counts."] = "Не включена аура паладина. Подойдёт любая.",
 	["No blessing on yourself. Any of yours counts."] = "На вас нет благословения. Подойдёт любое ваше.",
+	["Divine Shield, Divine Protection, Blessing of Protection and Lay on Hands cannot be used on you until it fades."] = "Божественный щит, Божественная защита, Благословение защиты и Возложение рук нельзя применить на вас, пока она не спадёт.",
+	["%s left"] = "Осталось %s",
 	["Forbearance badge"] = "Метка Воздержанности",
 	["Sound when Seal of Fury drops in combat"] = "Звук, когда Печать ярости спадает в бою",
 	["Spell check"] = "Проверка заклинаний",

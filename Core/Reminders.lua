@@ -179,6 +179,8 @@ R.LOOK = {
 	seal = { brand = "ember", title = "Seal", desc = "No seal on you. Judgement and much of your damage need one." },
 	aura = { brand = "tide", title = "Aura", desc = "No paladin aura active. Any aura counts." },
 	blessing = { brand = "arcane", title = "Blessing", desc = "No blessing on yourself. Any of yours counts." },
+	forb = { brand = "ember", title = "Forbearance", steady = true,
+		desc = "Divine Shield, Divine Protection, Blessing of Protection and Lay on Hands cannot be used on you until it fades." },
 }
 
 local function TileEnter(self)
@@ -190,7 +192,14 @@ local function TileEnter(self)
 	GameTooltip:SetOwner(self, "ANCHOR_TOP")
 	GameTooltip:AddLine(T(look.title), 1, 0.82, 0)
 	GameTooltip:AddLine(T(look.desc), 1, 1, 1, true)
-	GameTooltip:AddLine(T(item.expired and "Ran out" or "Missing"), 1, 0.3, 0.25)
+	if item.id == "forb" then
+		local left = item.expires and item.expires - G.Now()
+		if left and left > 0 then
+			GameTooltip:AddLine(string.format(T("%s left"), ns.Line.FormatTime(left)), 1, 0.3, 0.25)
+		end
+	else
+		GameTooltip:AddLine(T(item.expired and "Ran out" or "Missing"), 1, 0.3, 0.25)
+	end
 	GameTooltip:Show()
 end
 
@@ -216,6 +225,8 @@ local function Tile(i)
 	t.icon:SetTexCoord(0.06, 0.94, 0.06, 0.94)
 	t.mark = W.Text(t, nil, 11)
 	t.mark:SetPoint("BOTTOMRIGHT", -1, 1)
+	t.time = W.Text(t, nil, 12)
+	t.time:SetPoint("CENTER")
 	t:EnableMouse(true)
 	t:SetScript("OnEnter", TileEnter)
 	t:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -245,12 +256,15 @@ function R.ShowIcons(list, now)
 			t:SetPoint("BOTTOMLEFT", warn, "BOTTOM", -total / 2 + (i - 1) * (size + gap), 0)
 		end
 		t.item = item
-		t.icon:SetTexture(R.ICON_PATH .. (item.icon or "seal"))
+		t.icon:SetTexture(item.texture or (R.ICON_PATH .. (item.icon or "seal")))
 		local look = R.LOOK[item.id]
 		local brand = ns.BRAND or {}
 		local g = brand[look and look.brand or "ember"] or { { 0.96, 0.77, 0.19, 1 }, { 1, 0.22, 0.15, 1 } }
 		W.Gradient(t.glow, "VERTICAL", g[2], g[1]) -- light on top
-		t.glow:SetAlpha(pulse)
+		t.glow:SetAlpha(look and look.steady and 1 or pulse)
+		local left = item.expires and item.expires - (now or 0)
+		W.SetFontSize(t.time, math.max(10, math.floor(size / 2.6)))
+		t.time:SetText(left and left > 0 and ns.Line.FormatTime(left) or "")
 		-- a seal that just ran out gets a small "!"
 		W.SetFontSize(t.mark, math.max(10, math.floor(size / 2.6)))
 		t.mark:SetText(item.expired and "|cffffd100!|r" or "")
@@ -330,11 +344,22 @@ function R.Render()
 		list, badges = {}, { rf = false, forbearance = false }
 	end
 	R.active = list
+	-- Forbearance sits in the same icon row, after the reminders
+	local row = {}
+	for i, item in ipairs(list) do
+		row[i] = item
+	end
+	if badges.forbearance then
+		local fd = ns.Auras.data and ns.Auras.data.forbearance
+		row[#row + 1] = { id = "forb", text = T("Forbearance"), texture = S.Get("forbearance").icon,
+			expires = fd and fd.expires or (preview and now + 42) or nil }
+	end
 
+	R.row = row
 	if db.warnIcons then
 		warn.text:SetText("")
-		R.ShowIcons(list, now)
-		warn:SetShown(#list > 0)
+		R.ShowIcons(row, now)
+		warn:SetShown(#row > 0)
 	else
 		R.ShowIcons({}, now)
 		local lines = {}
@@ -349,7 +374,8 @@ function R.Render()
 	rfBadge.label:SetShown(preview and true or false)
 	forbBadge.label:SetShown(preview and true or false)
 	rfBadge:SetShown(badges.rf and ns.DB().rfBadge and true or false)
-	forbBadge:SetShown(badges.forbearance and true or false)
+	-- with icons Forbearance is a tile in the reminder row; with text, its badge
+	forbBadge:SetShown(badges.forbearance and not db.warnIcons and true or false)
 	local fd = ns.Auras.data.forbearance
 	local left = fd and fd.expires and fd.expires - now
 	forbBadge.time:SetText(left and left > 0 and ns.Line.FormatTime(left) or "")

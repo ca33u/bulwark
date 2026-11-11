@@ -269,30 +269,80 @@ rail:SetSize(420, 4)
 rail:Hide()
 SW.rail = rail
 
-rail.bg = rail:CreateTexture(nil, "BACKGROUND")
-rail.bg:SetPoint("TOPLEFT", -1, 1)
-rail.bg:SetPoint("BOTTOMRIGHT", 1, -1)
-rail.fill = rail:CreateTexture(nil, "ARTWORK")
+-- Styled like the main line: a dark rounded track with a soft glow, the
+-- fill a gradient with round ends, in the addicted "tide" blue so it reads
+-- apart from the gold-to-red line above.
+local function Round(layer, sub)
+	local t = rail:CreateTexture(nil, layer, nil, sub)
+	t:SetTexture(W.WHITE)
+	t.mask = W.RoundMask(rail, t)
+	return t
+end
+
+local function Flat(layer, sub)
+	local t = rail:CreateTexture(nil, layer, nil, sub)
+	t:SetTexture(W.WHITE)
+	return t
+end
+
+-- a pill = flat middle + two round ends
+local function Pill(layer, sub)
+	return { mid = Flat(layer, sub), l = Round(layer, sub), r = Round(layer, sub) }
+end
+
+local function PlacePill(p, pad, h, color)
+	local d = h + 2 * pad
+	p.mid:ClearAllPoints()
+	p.mid:SetPoint("TOPLEFT", rail, "TOPLEFT", -pad + d / 2, pad)
+	p.mid:SetPoint("BOTTOMRIGHT", rail, "BOTTOMRIGHT", pad - d / 2, -pad)
+	for _, side in ipairs({ "l", "r" }) do
+		local t = p[side]
+		t:ClearAllPoints()
+		t:SetSize(d, d)
+		t:SetPoint("CENTER", rail, side == "l" and "LEFT" or "RIGHT", side == "l" and (-pad + d / 2) or (pad - d / 2), 0)
+		t:SetShown(t.mask ~= nil)
+	end
+	for _, part in pairs(p) do
+		part:SetColorTexture(color[1], color[2], color[3], color[4] or 1)
+	end
+end
+
+rail.glow = Pill("BACKGROUND", 0)
+rail.track = Pill("BACKGROUND", 1)
+rail.fill = Flat("ARTWORK", 0)
 rail.fill:SetPoint("TOPLEFT")
 rail.fill:SetPoint("BOTTOMLEFT")
-rail.spark = rail:CreateTexture(nil, "OVERLAY")
-rail.spark:SetTexture(W.WHITE)
-rail.spark:SetWidth(2)
+rail.capStart = Round("ARTWORK", 1)
+rail.capEnd = Round("ARTWORK", 2)
 rail.time = W.Text(rail, nil, 10)
-rail.time:SetPoint("LEFT", rail, "RIGHT", 5, 0)
+rail.time:SetPoint("LEFT", rail, "RIGHT", 8, 0)
+
+SW.COLORS = (ns.BRAND and ns.BRAND.tide) or { { 0.15, 0.45, 1, 1 }, { 0.35, 0.9, 1, 1 } }
 
 function SW.Apply()
 	local db = ns.DB()
 	local c = db.colors
-	rail:SetSize(db.width, db.swingHeight)
+	local h = db.swingHeight
+	local a, b = SW.COLORS[1], SW.COLORS[2]
+	rail:SetSize(db.width, h)
 	rail:ClearAllPoints()
 	rail:SetPoint("TOP", line, "BOTTOM", 0, -db.swingGap)
-	rail.bg:SetColorTexture(c.bg[1], c.bg[2], c.bg[3], math.max(0.35, c.bg[4]))
-	W.Gradient(rail.fill, "HORIZONTAL", c.line, { c.capEnd[1], c.capEnd[2], c.capEnd[3], c.capEnd[4] })
-	rail.spark:ClearAllPoints()
-	rail.spark:SetPoint("TOP", rail.fill, "TOPRIGHT", 0, 1)
-	rail.spark:SetPoint("BOTTOM", rail.fill, "BOTTOMRIGHT", 0, -1)
-	rail.spark:SetVertexColor(1, 1, 1, 0.9)
+	PlacePill(rail.track, 1, h, { c.bg[1], c.bg[2], c.bg[3], math.max(0.5, c.bg[4]) })
+	PlacePill(rail.glow, 2, h, { b[1], b[2], b[3], 0.18 })
+	-- the fill starts half a circle in, so its round start sits on the track's end
+	rail.fill:ClearAllPoints()
+	rail.fill:SetPoint("TOPLEFT", rail, "TOPLEFT", h / 2, 0)
+	rail.fill:SetPoint("BOTTOMLEFT", rail, "BOTTOMLEFT", h / 2, 0)
+	W.Gradient(rail.fill, "HORIZONTAL", a, b)
+	rail.capStart:ClearAllPoints()
+	rail.capStart:SetSize(h, h)
+	rail.capStart:SetPoint("CENTER", rail, "LEFT", h / 2, 0)
+	rail.capStart:SetColorTexture(a[1], a[2], a[3], 1)
+	rail.capEnd:ClearAllPoints()
+	rail.capEnd:SetSize(h, h)
+	rail.capEnd:SetPoint("CENTER", rail.fill, "RIGHT", 0, 0)
+	rail.capEnd:SetColorTexture(b[1], b[2], b[3], 1)
+	rail.time:SetTextColor(b[1], b[2], b[3])
 end
 
 local testState = SW.New()
@@ -319,7 +369,9 @@ function SW.Render()
 	if movers and movers.unlocked and not testing and not s.finish then
 		frac = 0.6
 	end
-	rail.fill:SetWidth(math.max(0.01, db.width * frac))
+	-- the body runs between the two round ends
+	local h = db.swingHeight
+	rail.fill:SetWidth(math.max(0.01, (db.width - h) * frac))
 	if db.swingShowTime then
 		local rem = SW.Remaining(s, now)
 		rail.time:SetText(rem and string.format("%.1f", rem) or "")

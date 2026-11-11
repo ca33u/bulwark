@@ -305,7 +305,7 @@ local old = {
 	autoRanks = false, ranksCaughtUp = { ["A-B"] = true }, cvarsReset = true, someFutureKey = "keep",
 }
 local m = ns.MigrateDB(old)
-Check(m.schema == 2, "schema marker")
+Check(m.schema == 3, "schema marker")
 Check(m.x == 10 and m.y == -200 and m.width == 500 and m.scale == 1.2 and m.iconSize == 26, "positions and sizes kept")
 Check(m.barStyle == "luminous", "numeric style 4 -> luminous")
 Check(m.showTimers == false and m.warnSeal == false and m.locked == false, "booleans kept")
@@ -325,7 +325,10 @@ local m3 = ns.MigrateDB({ barStyle = "Minimal flat", width = "bad", tracked = { 
 Check(m3.barStyle == "minimal" and m3.width == 420, "style by name, wrong type falls back to default")
 Check(m3.tracked.seal_fury == true and m3.trackedExclusive, "a list of tracked keys means only those")
 local again = ns.MigrateDB(ns.MigrateDB({}))
-Check(again.schema == 2 and again.width == 420, "migration is idempotent")
+Check(again.schema == 3 and again.width == 420, "migration is idempotent")
+local m4 = ns.MigrateDB({ schema = 2, warnOffX = -55, warnOffY = -77, readyOffX = 47, readyOffY = -57, width = 500 })
+Check(m4.warnOffX == 0 and m4.warnOffY == 12 and m4.readyOffX == 0 and m4.readyOffY == -40 and m4.width == 500,
+	"2.x -> 3: reminders above, abilities below, centred; other settings kept")
 Check(ns.NormalizeStyle("Luminous beveled") == "luminous" and ns.NormalizeStyle(nil) == "classic", "style names")
 
 -- Website link: the copy window opens with the address.

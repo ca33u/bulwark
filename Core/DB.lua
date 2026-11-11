@@ -11,7 +11,7 @@ local ADDON_NAME, ns = ...
 ns = ns or {}
 local G = ns.G
 
-local SCHEMA = 2
+local SCHEMA = 3
 
 local function RGBA(r, g, b, a)
 	return { r, g, b, a }
@@ -40,7 +40,7 @@ ns.DEFAULTS = {
 
 	-- ability icons
 	readyCDs = {},
-	readyIconSize = 32, readySpacing = 4, readyOffX = 0, readyOffY = 50,
+	readyIconSize = 32, readySpacing = 4, readyOffX = 0, readyOffY = -40,
 	readyAlign = "center", readyGrowRight = true,
 	abilitiesOnlyInCombat = false,
 	iconsHideFlying = true, iconsHideResting = false, iconsHideMounted = false, iconsHideDead = true,
@@ -50,7 +50,7 @@ ns.DEFAULTS = {
 	warnBlessing = true,
 	rfBadge = false, -- the separate RF icon; the red text already says it
 	soundSealDrop = true,
-	warnSize = 16, warnOffX = 0, warnOffY = 8, warnAlign = "center",
+	warnSize = 16, warnOffX = 0, warnOffY = 12, warnAlign = "center",
 	warnIcons = true, -- Bulwark's own icons above the line instead of red text
 	warnColor = RGBA(1, 0.25, 0.15, 1),
 	badgeRFX = -250, badgeRFY = -140, badgeForbX = 250, badgeForbY = -140, badgeSize = 34,
@@ -203,9 +203,12 @@ function ns.MigrateDB(db)
 		db = {}
 	end
 	local fromSchema = tonumber(db.schema) or 1
-	if fromSchema < SCHEMA then
+	if fromSchema < 2 then
 		MigrateFrom1x(db)
 	end
+	-- 3: the new layout (reminders and Forbearance above the line, abilities
+	-- under the swing rail, both centred) replaces old hand-placed offsets
+	local relayout = fromSchema == 2
 
 	db.barStyle = ns.NormalizeStyle(db.barStyle)
 
@@ -246,6 +249,12 @@ function ns.MigrateDB(db)
 
 	for key, range in pairs(ns.RANGES) do
 		db[key] = G.Clamp(db[key], range[1], range[2])
+	end
+	if relayout then
+		for _, key in ipairs({ "warnOffX", "warnOffY", "readyOffX", "readyOffY" }) do
+			db[key] = ns.DEFAULTS[key]
+		end
+		db.warnAlign, db.readyAlign = "center", "center"
 	end
 	if not ALIGNS[db.readyAlign] then
 		db.readyAlign = "center"

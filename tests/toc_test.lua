@@ -90,7 +90,7 @@ local db = {
 }
 SlashCmdList = { BULWARK = function() end }
 ns = BootAddon(db)
-Check(BulwarkDB == db and db.schema == 2, "ADDON_LOADED migrates BulwarkDB in place")
+Check(BulwarkDB == db and db.schema == 3, "ADDON_LOADED migrates BulwarkDB in place")
 Check(db.someFutureKey == 1 and db.aggro.enabled == true, "unknown and module keys kept")
 Check(type(db.blessings) == "table" and type(db.plates) == "table", "modules created their tables")
 Check(ns.Spells.spec == "PROTECTION", "spec read from talent points")
@@ -178,7 +178,11 @@ WOW.combat = false
 -- Forbearance badge and locked immunities.
 WOW.auras.HARMFUL = { { name = "Forbearance", spellId = 25771, duration = 60, expirationTime = WOW.time + 60 } }
 RunUpdates(0.5)
-Check(ns.Reminders.forbBadge:IsShown(), "Forbearance badge")
+local forbTile = false
+for _, item in ipairs(ns.Reminders.row or {}) do
+	if item.id == "forb" then forbTile = true end
+end
+Check(forbTile and not ns.Reminders.forbBadge:IsShown(), "Forbearance: a tile in the reminder row, no separate badge")
 Check(ns.Abilities.LockedByForbearance("divine_shield") and not ns.Abilities.LockedByForbearance("judgement"), "immunities locked")
 WOW.auras.HARMFUL = {}
 
