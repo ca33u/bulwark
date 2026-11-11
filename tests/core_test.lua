@@ -272,6 +272,17 @@ Check(entries.consecration == nil, "consecration ends after 8 s")
 A.ApplyRead(entries, "divine_shield", "present", { icon = 1 }, 400, 12, ended)
 Check(entries.divine_shield and entries.divine_shield.expires == 412, "present with hidden timing: base duration from now")
 Check(A.StatusOf(nil, false, nil) == "hidden" and A.StatusOf(nil, true, nil) == "absent" and A.StatusOf({}, false) == "present", "StatusOf")
+-- in combat auras turn secret: remember the last readable "absent"
+A.status.righteous_fury = "hidden"
+A.known.righteous_fury, A.cast.righteous_fury = { status = "absent", at = 100 }, nil
+Check(A.Remembered("righteous_fury") == "absent", "RF missing before the pull stays missing in combat")
+A.cast.righteous_fury = 150
+Check(A.Remembered("righteous_fury") == "hidden", "cast since then: no longer sure, no reminder")
+A.known.righteous_fury, A.cast.righteous_fury = { status = "present", at = 100 }, nil
+Check(A.Remembered("righteous_fury") == "hidden", "it was on before the pull: no reminder")
+A.status.righteous_fury = "absent"
+Check(A.Remembered("righteous_fury") == "absent", "readable: the read wins")
+A.status.righteous_fury, A.known.righteous_fury = nil, nil
 Check(ns.Line.Progress(5, 10) == 0.5 and ns.Line.Progress(20, 10) == 0 and ns.Line.Progress(-1, 10) == 1, "line progress")
 
 ------------------------------------------------------------------------

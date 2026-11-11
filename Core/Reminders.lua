@@ -105,11 +105,19 @@ function R.Context(now)
 	local db = ns.DB()
 	local A = ns.Auras
 	local sealStatus = A.SealStatus()
+	-- hidden in combat: fall back to what was readable before, if nothing was cast since
+	if sealStatus == "hidden" and A.RememberedNone(S.SEALS) then
+		sealStatus = "absent"
+	end
+	local aura = A.PaladinAura()
+	if aura == "hidden" and A.RememberedNone(S.AURAS) then
+		aura = "none"
+	end
 	return {
 		spec = S.spec,
-		rf = { enabled = db.warnRighteousFury, known = (S.IsKnown("righteous_fury")), status = A.Status("righteous_fury") },
+		rf = { enabled = db.warnRighteousFury, known = (S.IsKnown("righteous_fury")), status = A.Remembered("righteous_fury") },
 		seal = { enabled = db.warnSeal, known = AnySealKnown(), status = sealStatus, expired = SealExpired(now) },
-		dev = { enabled = db.warnDevotion, known = AnyAuraKnown(), aura = A.PaladinAura() },
+		dev = { enabled = db.warnDevotion, known = AnyAuraKnown(), aura = aura },
 		forb = { enabled = db.warnForbearance, status = A.Status("forbearance") },
 	}
 end

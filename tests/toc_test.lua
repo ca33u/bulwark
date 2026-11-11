@@ -122,7 +122,10 @@ ns.DB().rfBadge = false
 
 WOW.aurasHidden = true
 RunUpdates(1)
-Check(#ns.Reminders.active == 0, "hidden auras: no reminders")
+Check(#ns.Reminders.active == 3, "auras turn secret (combat): what was missing before stays reminded")
+ns.Auras.known = {}
+RunUpdates(1)
+Check(#ns.Reminders.active == 0, "hidden auras and nothing seen before: no reminders")
 WOW.aurasHidden = false
 
 -- One unrelated aura is unreadable and the general flag is set, but these

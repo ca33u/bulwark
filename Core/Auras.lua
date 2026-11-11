@@ -149,6 +149,8 @@ function A.QueryTrustworthy(key)
 end
 
 A.names = {}      -- normalized name -> aura (last complete scan, for Prep)
+A.known = {}      -- key -> { status, at }: the last status that was readable
+A.cast = {}       -- key -> time of your last cast of it
 A.complete = false
 
 -- Pure: decides a status from a scan result.
@@ -180,6 +182,9 @@ function A.Scan()
 		end
 		local status = A.StatusOf(data, complete or trusted, queried)
 		A.status[key] = status
+		if status ~= "hidden" then
+			A.known[key] = { status = status, at = G.Now() }
+		end
 		A.data[key] = data or queried
 	end
 	return complete
@@ -187,6 +192,33 @@ end
 
 function A.Status(key)
 	return A.status[key] or "hidden"
+end
+
+-- Like A.Status, but a hidden read (auras turn secret in combat on WoW
+-- Forever) keeps the last readable "absent" as long as you have not cast
+-- the spell since. So "Righteous Fury missing" stays up in combat when it
+-- was missing before the pull.
+function A.Remembered(key)
+	local st = A.Status(key)
+	if st ~= "hidden" then
+		return st
+	end
+	local k = A.known[key]
+	if k and k.status == "absent" and not (A.cast[key] and A.cast[key] >= k.at) then
+		return "absent"
+	end
+	return "hidden"
+end
+
+-- Same for a group (all seals, all auras): "absent" only when every one
+-- of them was last seen absent and none was cast since.
+function A.RememberedNone(keys)
+	for _, key in ipairs(keys) do
+		if A.Remembered(key) ~= "absent" then
+			return false
+		end
+	end
+	return true
 end
 
 ------------------------------------------------------------------------
@@ -376,6 +408,7 @@ function A.OnCast(spellID)
 		return nil
 	end
 	local now = G.Now()
+	A.cast[key] = now
 	local spell = S.Get(key)
 	if spell.dur then
 		local base = A.BaseDuration(key, S.ranks)
