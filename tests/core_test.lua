@@ -305,7 +305,7 @@ local old = {
 	autoRanks = false, ranksCaughtUp = { ["A-B"] = true }, cvarsReset = true, someFutureKey = "keep",
 }
 local m = ns.MigrateDB(old)
-Check(m.schema == 3, "schema marker")
+Check(m.schema == 4, "schema marker")
 Check(m.x == 10 and m.y == -200 and m.width == 500 and m.scale == 1.2 and m.iconSize == 26, "positions and sizes kept")
 Check(m.barStyle == "luminous", "numeric style 4 -> luminous")
 Check(m.showTimers == false and m.warnSeal == false and m.locked == false, "booleans kept")
@@ -325,7 +325,10 @@ local m3 = ns.MigrateDB({ barStyle = "Minimal flat", width = "bad", tracked = { 
 Check(m3.barStyle == "minimal" and m3.width == 420, "style by name, wrong type falls back to default")
 Check(m3.tracked.seal_fury == true and m3.trackedExclusive, "a list of tracked keys means only those")
 local again = ns.MigrateDB(ns.MigrateDB({}))
-Check(again.schema == 3 and again.width == 420, "migration is idempotent")
+Check(again.schema == 4 and again.width == 420, "migration is idempotent")
+local m5 = ns.MigrateDB({ schema = 3, barStyle = "luminous", glowSize = 20, width = 600, warnSize = 20 })
+Check(m5.barStyle == "classic" and m5.glowSize == ns.DEFAULTS.glowSize and m5.width == 600 and m5.warnSize == 20,
+	"3 -> 4: style and colours back to the addicted look, sizes you set kept")
 local m4 = ns.MigrateDB({ schema = 2, warnOffX = -55, warnOffY = -77, readyOffX = 47, readyOffY = -57, width = 500 })
 Check(m4.warnOffX == 0 and m4.warnOffY == 12 and m4.readyOffX == 0 and m4.readyOffY == -40 and m4.width == 500,
 	"2.x -> 3: reminders above, abilities below, centred; other settings kept")

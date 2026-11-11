@@ -251,26 +251,6 @@ local function CheckGrid(p, keys, get, set, labelOf)
 	p.y[1], p.y[2] = y - rows * 22, y - rows * 22
 end
 
--- RGBA sliders bound to whatever color get() returns (2 x 2).
-local function ColorSliders(p, get)
-	local y = math.min(p.y[1], p.y[2])
-	local labels = { T("Red"), T("Green"), T("Blue"), T("Opacity") }
-	for i = 1, 4 do
-		local s = W.Slider(p, labels[i], 0, 1, 0.05, function()
-			return get()[i]
-		end, function(v)
-			get()[i] = v
-		end)
-		s:SetWidth(COLW - 10)
-		local col = (i - 1) % 2 + 1
-		local row = math.floor((i - 1) / 2)
-		s:SetPoint("TOPLEFT", p, "TOPLEFT", COLX[col], y - row * 38)
-		refreshers[#refreshers + 1] = s.Refresh
-	end
-	p.y[1], p.y[2] = y - 76, y - 76
-end
-
-local ALIGNS = { { "left", T("Left") }, { "center", T("Center") }, { "right", T("Right") } }
 
 ------------------------------------------------------------------------
 -- General
@@ -362,137 +342,29 @@ do
 end
 
 ------------------------------------------------------------------------
--- Line
+-- Line: size and what the icons on it show. Colours and style are the
+-- addicted look (gold to red); positions are set by dragging.
 ------------------------------------------------------------------------
-
-O.PRESETS = {
-	{ T("Gold"), { line = { 0.96, 0.77, 0.19, 1 }, glow = { 1, 0.82, 0.35, 0.35 }, bg = { 0.02, 0.02, 0.03, 0.65 },
-		capStart = { 0.96, 0.77, 0.19, 1 }, capEnd = { 1, 0.22, 0.15, 1 } } },
-	{ T("Holy"), { line = { 1, 0.95, 0.7, 1 }, glow = { 1, 1, 0.8, 0.35 }, bg = { 0.05, 0.05, 0.08, 0.65 },
-		capStart = { 1, 1, 0.85, 1 }, capEnd = { 1, 0.3, 0.2, 1 } } },
-	{ T("Crimson"), { line = { 0.85, 0.15, 0.15, 1 }, glow = { 1, 0.2, 0.2, 0.3 }, bg = { 0.06, 0.02, 0.02, 0.7 },
-		capStart = { 1, 0.4, 0.3, 1 }, capEnd = { 1, 0.1, 0.1, 1 } } },
-	{ T("Frost"), { line = { 0.4, 0.75, 1, 1 }, glow = { 0.5, 0.8, 1, 0.35 }, bg = { 0.02, 0.03, 0.06, 0.7 },
-		capStart = { 0.6, 0.9, 1, 1 }, capEnd = { 1, 0.25, 0.2, 1 } } },
-	{ T("Mono"), { line = { 0.85, 0.85, 0.85, 1 }, glow = { 1, 1, 1, 0.2 }, bg = { 0, 0, 0, 0.6 },
-		capStart = { 1, 1, 1, 1 }, capEnd = { 1, 0.25, 0.2, 1 } } },
-}
 
 do
 	local p = NewPage("bar", T("Line"))
 
-	Section(p, T("SIZE AND STYLE"), 1)
-	local styles = {}
-	for _, key in ipairs(ns.STYLES) do
-		styles[#styles + 1] = { key, T(ns.Line.STYLES[key].label) }
-	end
-	CycleKey(p, 1, "barStyle", T("Style"), styles, function(v)
-		DB().lineHeight = ns.STYLE_THICKNESS[v] or DB().lineHeight
-	end)
+	Section(p, T("SIZE"), 1)
 	SliderKey(p, 1, "width", T("Width"), 200, 800, 10)
 	SliderKey(p, 1, "lineHeight", T("Thickness"), 2, 24, 1)
 	SliderKey(p, 1, "scale", T("Scale"), 0.6, 2, 0.05)
 	SliderKey(p, 1, "iconSize", T("Icon size"), 12, 48, 1)
-	SliderKey(p, 1, "glowSize", T("Glow size"), 0, 24, 1)
 
 	Section(p, T("ICONS ON THE LINE"), 2)
 	CheckKey(p, 2, "showTimers", T("Seconds under icons"))
 	CheckKey(p, 2, "showNames", T("Spell names under icons"))
-	CheckKey(p, 2, "growRight", T("Icons travel left to right"))
-	CheckKey(p, 2, "rfLastOnly", T("Righteous Fury only in its last 30 s"))
 	CheckKey(p, 2, "flashSoon", T("Flash before a buff ends"))
-	SliderKey(p, 2, "expireSoon", T("Flash in the last seconds"), 0, 30, 1)
-	Section(p, T("PARTS"), 2)
-	CheckKey(p, 2, "showGlow", T("Glow"))
-	CheckKey(p, 2, "showCaps", T("Caps"))
-	CheckKey(p, 2, "showBackground", T("Background"))
-	ButtonAt(p, 2, T("Center horizontally"), 180, function()
-		DB().x = 0
-		ns.ApplyAll()
-	end)
-
-	Section(p, T("COLORS"))
-	local y = p.y[1]
-	local presetLabel = W.Text(p, "GameFontNormalSmall")
-	presetLabel:SetPoint("TOPLEFT", COLX[1], y - 5)
-	presetLabel:SetText(T("Presets:"))
-	for i, preset in ipairs(O.PRESETS) do
-		local b = RedButton(p, preset[1], 84, function()
-			for k, c in pairs(preset[2]) do
-				DB().colors[k] = ns.CopyTable(c)
-			end
-			ns.ApplyAll()
-			O.Refresh()
-		end)
-		b:SetPoint("TOPLEFT", p, "TOPLEFT", COLX[1] + 62 + (i - 1) * 88, y)
-	end
-	p.y[1], p.y[2] = y - 28, y - 28
-
-	local which = "line"
-	local swatches = {}
-	local names = {
-		{ "line", T("Line") }, { "glow", T("Glow") }, { "bg", T("Background") },
-		{ "capStart", T("Start cap") }, { "capEnd", T("End cap") },
-	}
-	y = p.y[1]
-	local function RefreshSwatches()
-		for _, sw in ipairs(swatches) do
-			sw.Refresh(sw.key == which)
-		end
-	end
-	for i, n in ipairs(names) do
-		local sw = W.Swatch(p, n[2], function()
-			return DB().colors[n[1]]
-		end, function()
-			which = n[1]
-			RefreshSwatches()
-			O.Refresh()
-		end)
-		sw.key = n[1]
-		sw:SetWidth(112)
-		sw:SetPoint("TOPLEFT", p, "TOPLEFT", COLX[1] + (i - 1) * 118, y)
-		swatches[i] = sw
-	end
-	refreshers[#refreshers + 1] = RefreshSwatches
-	p.y[1], p.y[2] = y - 26, y - 26
-	ColorSliders(p, function()
-		return DB().colors[which]
-	end)
+	CheckKey(p, 2, "rfLastOnly", T("Righteous Fury only in its last 30 s"))
 
 	Section(p, T("BUFFS ON THE LINE"))
 	CheckGrid(p, S.LINE, ns.IsTracked, function(key, v)
 		DB().tracked[key] = v
 	end, S.DisplayName)
-end
-
-------------------------------------------------------------------------
--- Abilities
-------------------------------------------------------------------------
-
-do
-	local p = NewPage("abilities", T("Abilities"))
-
-	Section(p, T("LAYOUT"), 1)
-	SliderKey(p, 1, "readyIconSize", T("Icon size"), 12, 64, 1)
-	SliderKey(p, 1, "readySpacing", T("Spacing"), 0, 24, 1)
-	CycleKey(p, 1, "readyAlign", T("Align to the bar"), ALIGNS)
-
-	Section(p, T("POSITION"), 2)
-	SliderKey(p, 2, "readyOffX", T("Horizontal offset"), -400, 400, 1)
-	SliderKey(p, 2, "readyOffY", T("Vertical offset"), -300, 300, 1)
-	CycleKey(p, 2, "readyGrowRight", T("Grow direction"), { { true, T("Right") }, { false, T("Left") } })
-	ButtonAt(p, 2, T("Reset layout"), 180, function()
-		ns.ResetLayout({ "readyIconSize", "readySpacing", "readyOffX", "readyOffY", "readyAlign" })
-		ns.ApplyAll()
-		O.Refresh()
-	end)
-
-	Section(p, T("ABILITIES TO SHOW"))
-	CheckGrid(p, S.READY, ns.IsReadyShown, function(key, v)
-		DB().readyCDs[key] = v
-	end, S.DisplayName)
-	Note(p, nil, T("An icon appears only when you know the ability. Forbearance shows immunities as locked."), 18)
-	Note(p, nil, T("Unlocked: drag the icons, wheel = size, Shift+wheel = spacing."), 18)
 end
 
 ------------------------------------------------------------------------
@@ -507,60 +379,51 @@ do
 	CheckKey(p, 1, "warnSeal", T("Seal missing"))
 	CheckKey(p, 1, "warnDevotion", T("No aura active"))
 	CheckKey(p, 1, "warnBlessing", T("No blessing on yourself"))
-	CheckKey(p, 1, "rfBadge", T("Righteous Fury icon next to the text"))
-	CheckKey(p, 1, "warnForbearance", T("Forbearance badge"))
-	CheckKey(p, 1, "warnIcons", T("Icons instead of text"))
+	CheckKey(p, 1, "warnForbearance", T("Forbearance"))
 	CheckKey(p, 1, "soundSealDrop", T("Sound when Seal of Fury drops in combat"))
-	ButtonAt(p, 1, T("Spell check"), 180, function()
-		ns.Reminders.SpellCheck()
-	end)
 
-	Section(p, T("TEXT"), 2)
-	SliderKey(p, 2, "warnSize", T("Text size"), 8, 40, 1)
-	CycleKey(p, 2, "warnAlign", T("Align to the bar"), ALIGNS)
-	SliderKey(p, 2, "warnOffX", T("Horizontal offset"), -400, 400, 1)
-	SliderKey(p, 2, "warnOffY", T("Vertical offset"), -300, 300, 1)
+	Section(p, T("SIZE"), 2)
+	SliderKey(p, 2, "warnSize", T("Icon size"), 8, 40, 1)
+	Note(p, 2, T("Reminders sit above the line, abilities under it. Drag them in /bulwark unlock."), 40)
 
-	Section(p, T("TEXT COLOR"))
-	ColorSliders(p, function()
-		return DB().warnColor
-	end)
 	Note(p, nil, T("Reminders appear only when Bulwark is sure: a value the game hides never creates one."), 18)
 end
 
 ------------------------------------------------------------------------
--- Swing
+-- Abilities
 ------------------------------------------------------------------------
 
 do
-	local p = NewPage("swing", T("Swing"))
+	local p = NewPage("abilities", T("Abilities"))
 
-	Section(p, T("DISPLAY"), 1)
-	CheckKey(p, 1, "showSwing", T("Show the swing timer"))
-	CheckKey(p, 1, "swingShowTime", T("Seconds to the next swing"))
-	SliderKey(p, 1, "swingHeight", T("Height"), 2, 12, 1)
-	SliderKey(p, 1, "swingGap", T("Gap under the line"), 0, 60, 1)
+	Section(p, T("SIZE"), 1)
+	SliderKey(p, 1, "readyIconSize", T("Icon size"), 12, 64, 1)
 
-	Section(p, T("TIMING"), 2)
-	CheckKey(p, 2, "swingParryHaste", T("Parry haste"))
-	CheckKey(p, 2, "swingCombatLog", T("Use the combat log as a source"))
-	Note(p, 2, T("Weapon speed is read out of combat and cached. Parry haste: a parry cuts the wait by 40% of the weapon speed, never below 20%."), 56)
+	Section(p, T("ABILITIES TO SHOW"))
+	CheckGrid(p, S.READY, ns.IsReadyShown, function(key, v)
+		DB().readyCDs[key] = v
+	end, S.DisplayName)
+	Note(p, nil, T("An icon appears only when you know the ability. Forbearance shows immunities as locked."), 18)
 end
 
 ------------------------------------------------------------------------
--- Windows
+-- More: swing timer, mitigation window, readiness
 ------------------------------------------------------------------------
 
 do
-	local p = NewPage("windows", T("Windows"))
+	local p = NewPage("more", T("More"))
 
-	Section(p, T("MITIGATION STATS"), 1)
-	CheckKey(p, 1, "showMitigation", T("Show the mitigation window"))
-	CycleKey(p, 1, "mitigLevelDiff", T("Target level"), {
+	Section(p, T("SWING TIMER"), 1)
+	CheckKey(p, 1, "showSwing", T("Show the swing timer"))
+	CheckKey(p, 1, "swingShowTime", T("Seconds to the next swing"))
+	CheckKey(p, 1, "swingParryHaste", T("Parry haste"))
+	Note(p, 1, T("Weapon speed is read out of combat and cached. Parry haste: a parry cuts the wait by 40% of the weapon speed, never below 20%."), 56)
+
+	Section(p, T("MITIGATION STATS"), 2)
+	CheckKey(p, 2, "showMitigation", T("Show the mitigation window"))
+	CycleKey(p, 2, "mitigLevelDiff", T("Target level"), {
 		{ 3, T("Raid boss (+3)") }, { 2, "+2" }, { 1, "+1" }, { 0, T("Same level") },
 	})
-	SliderKey(p, 1, "mitigFont", T("Font size"), 8, 20, 1)
-	SliderKey(p, 1, "mitigScale", T("Scale"), 0.5, 2, 0.05)
 
 	Section(p, T("TANK READINESS"), 2)
 	Note(p, 2, T("A checklist before a pull: Righteous Fury, seal, aura, blessings, group buffs, weapon, shield, enchants, food and flasks."), 42)
@@ -574,7 +437,7 @@ end
 ------------------------------------------------------------------------
 
 -- Old tab names still open the right page.
-local ALIAS = { about = "general", mitigation = "windows" }
+local ALIAS = { about = "general", mitigation = "more", windows = "more", swing = "more" }
 
 function O.Refresh()
 	for _, fn in ipairs(refreshers) do

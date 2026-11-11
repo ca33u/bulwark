@@ -11,7 +11,7 @@ local ADDON_NAME, ns = ...
 ns = ns or {}
 local G = ns.G
 
-local SCHEMA = 3
+local SCHEMA = 4
 
 local function RGBA(r, g, b, a)
 	return { r, g, b, a }
@@ -209,6 +209,9 @@ function ns.MigrateDB(db)
 	-- 3: the new layout (reminders and Forbearance above the line, abilities
 	-- under the swing rail, both centred) replaces old hand-placed offsets
 	local relayout = fromSchema == 2
+	-- 4: the options were trimmed to what matters; settings that no longer
+	-- have a control go back to the addicted look
+	local restyle = fromSchema >= 2 and fromSchema < 4
 
 	db.barStyle = ns.NormalizeStyle(db.barStyle)
 
@@ -249,6 +252,12 @@ function ns.MigrateDB(db)
 
 	for key, range in pairs(ns.RANGES) do
 		db[key] = G.Clamp(db[key], range[1], range[2])
+	end
+	if restyle then
+		for _, key in ipairs(ns.FIXED_KEYS) do
+			local d = ns.DEFAULTS[key]
+			db[key] = type(d) == "table" and Copy(d) or d
+		end
 	end
 	if relayout then
 		for _, key in ipairs({ "warnOffX", "warnOffY", "readyOffX", "readyOffY" }) do
@@ -316,6 +325,14 @@ function ns.IsReadyShown(key)
 	end
 	return v and true or false
 end
+
+-- Settings without a control in the options any more (style, colours,
+-- fine layout): kept at their defaults.
+ns.FIXED_KEYS = {
+	"barStyle", "colors", "glowSize", "showGlow", "showCaps", "showBackground", "growRight",
+	"warnIcons", "rfBadge", "warnColor", "warnAlign", "readySpacing", "readyAlign", "readyGrowRight",
+	"swingHeight", "swingGap", "swingCombatLog", "mitigFont", "mitigScale",
+}
 
 -- Positions and sizes back to the defaults (/bulwark reset).
 ns.LAYOUT_KEYS = {
