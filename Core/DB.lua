@@ -53,7 +53,7 @@ ns.DEFAULTS = {
 	warnSize = 16, warnOffX = 0, warnOffY = 12, warnAlign = "center",
 	warnIcons = true, -- Bulwark's own icons above the line instead of red text
 	warnColor = RGBA(1, 0.25, 0.15, 1),
-	badgeRFX = -250, badgeRFY = -140, badgeForbX = 250, badgeForbY = -140, badgeSize = 34,
+	badgeRFX = -250, badgeRFY = -140, badgeForbX = 250, badgeForbY = -140,
 	warningsOnlyInCombat = false,
 	warnHideFlying = true, warnHideResting = false, warnHideMounted = false, warnHideDead = true,
 
@@ -77,7 +77,7 @@ ns.RANGES = {
 	expireSoon = { 0, 30 }, glowSize = { 0, 24 },
 	readyIconSize = { 12, 64 }, readySpacing = { 0, 24 },
 	readyOffX = { -2000, 2000 }, readyOffY = { -2000, 2000 },
-	warnSize = { 8, 40 }, warnOffX = { -2000, 2000 }, warnOffY = { -2000, 2000 }, badgeSize = { 16, 64 },
+	warnSize = { 8, 40 }, warnOffX = { -2000, 2000 }, warnOffY = { -2000, 2000 },
 	swingHeight = { 2, 12 }, swingGap = { 0, 60 },
 	mitigScale = { 0.5, 2 }, mitigFont = { 8, 20 }, mitigLevelDiff = { 0, 3 },
 	minimapAngle = { -360, 720 },
@@ -322,7 +322,7 @@ ns.LAYOUT_KEYS = {
 	"x", "y", "width", "lineHeight", "scale", "iconSize",
 	"readyIconSize", "readySpacing", "readyOffX", "readyOffY", "readyAlign",
 	"warnSize", "warnOffX", "warnOffY", "warnAlign",
-	"badgeRFX", "badgeRFY", "badgeForbX", "badgeForbY", "badgeSize",
+	"badgeRFX", "badgeRFY", "badgeForbX", "badgeForbY",
 	"swingHeight", "swingGap", "mitigX", "mitigY", "mitigScale", "prepX", "prepY",
 }
 
