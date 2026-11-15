@@ -7,7 +7,7 @@
 ## Version: 2.3.0
 ## X-License: MIT
 ## X-Website: https://addicted.sh
-## IconTexture: Interface\AddOns\Bulwark\Media\icon
+## IconTexture: Interface\AddOns\Bulwark\Media\icon.blp
 ## Category: Combat
 ## DefaultState: enabled
 ## SavedVariables: BulwarkDB

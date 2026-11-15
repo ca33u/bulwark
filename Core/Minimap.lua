@@ -15,7 +15,7 @@ local G, W, T = ns.G, ns.W, ns.T
 local MM = {}
 ns.Minimap = MM
 
-MM.ICON = "Interface\\AddOns\\Bulwark\\Media\\minimap"
+MM.ICON = "Interface\\AddOns\\Bulwark\\Media\\minimap.blp"
 
 -- Pure: position on the ring for an angle in degrees, UIParent coordinates.
 function MM.Point(angle, mx, my, width, minimapScale, uiScale)
@@ -111,10 +111,9 @@ function MM.Create()
 	icon:SetSize(17, 17)
 	icon:SetPoint("TOPLEFT", 7, -6)
 	icon:SetTexture(MM.ICON)
-	icon:SetTexCoord(0.06, 0.94, 0.06, 0.94) -- slight zoom, the round mask does the rest
-	if not G.Call(icon.SetMask, icon, W.ROUND_MASK) then
-		W.RoundMask(btn, icon)
-	end
+	-- the picture is already round (transparent corners): a mask texture
+	-- (SetMask) draws it as scrambled stripes on Forever
+	icon:SetTexCoord(0, 1, 0, 1)
 	btn.icon = icon
 
 	local border = btn:CreateTexture(nil, "OVERLAY")

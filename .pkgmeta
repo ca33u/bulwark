@@ -10,3 +10,4 @@ ignore:
   - .pkgmeta
   - RELEASING.md
   - Media/logo.png
+  - Media/thumbnail.png
