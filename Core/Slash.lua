@@ -86,7 +86,7 @@ end)
 Add({ "warnings" }, nil, function()
 	local db = ns.DB()
 	local v = not (db.warnRighteousFury or db.warnSeal or db.warnDevotion or db.warnForbearance)
-	db.warnRighteousFury, db.warnSeal, db.warnDevotion, db.warnForbearance = v, v, v, v
+	db.warnRighteousFury, db.warnSeal, db.warnDevotion, db.warnForbearance, db.warnCleanse = v, v, v, v, v
 	ns.Print("%s %s", T("reminders:"), ns.OnOff(v))
 	ns.ApplyAll()
 end)
@@ -105,6 +105,9 @@ Add({ "width" }, "width 200-800 | thick 2-24 | scale 0.6-2", Number("width", "wi
 Add({ "thick" }, nil, Number("lineHeight", "thick", 2, 24))
 Add({ "scale" }, nil, Number("scale", "scale", 0.6, 2))
 Add({ "readysize" }, "readysize 12-64", Number("readyIconSize", "readysize", 12, 64))
+Add({ "legacy" }, "legacy", function()
+	ns.Reminders.LegacyReport()
+end)
 Add({ "spellcheck" }, "spellcheck | debug", function()
 	ns.Reminders.SpellCheck()
 end)

@@ -214,6 +214,31 @@ Check(Ids(list) == "blessing" and list[1].icon == "blessing", "no blessing on yo
 list = R.Decide(Ctx({ bless = { enabled = true, known = true, status = "hidden" } }))
 Check(#list == 0, "blessing hidden: no reminder")
 Check(R.LOOK.blessing.brand == "arcane" and R.LOOK.aura.brand == "tide" and R.LOOK.seal.brand == "ember" and R.LOOK.rf.brand == "gold", "each reminder has its brand colour")
+-- cures: which spell to press for a debuff on you
+-- points to spend
+local pt = R.PointTiles({ enabled = true, talents = 2, legacy = 1 })
+Check(#pt == 2 and pt[1].id == "talents" and pt[1].count == 2 and pt[2].id == "legacy", "talent and legacy points: two tiles with counts")
+Check(#R.PointTiles({ enabled = true, combat = true, talents = 2 }) == 0, "points: nothing in combat")
+Check(#R.PointTiles({ enabled = false, talents = 2 }) == 0 and #R.PointTiles({ enabled = true, talents = 0 }) == 0, "points: off, or nothing to spend")
+Check(R.LooksLikeUnspent("GetUnspentPoints") and R.LooksLikeUnspent("GetNumAvailableLegacyPoints") and not R.LooksLikeUnspent("GetTreeInfo"), "legacy: guesses which function says what to spend")
+C_ForeverLegacy = { GetUnspentPoints = function() return 3 end, GetTreeInfo = function() return {} end }
+R.FindLegacy()
+Check(R.LegacyPoints() == 3 and R.legacy.from == "C_ForeverLegacy.GetUnspentPoints", "legacy points found in a C_ table named Legacy")
+C_ForeverLegacy = nil
+R.FindLegacy()
+Check(R.LegacyPoints() == nil, "nothing named Legacy: no tile")
+local function Cure(c) c.enabled = c.enabled ~= false; return R.Cure(c) end
+Check(Cure({ purify = true, kinds = { Poison = "Venom" } }) == "purify", "poison, only Purify known: Purify")
+Check(Cure({ purify = true, kinds = { Disease = "Plague" } }) == "purify", "disease: Purify")
+Check(Cure({ purify = true, kinds = { Magic = "Sleep" } }) == nil, "magic without Cleanse: nothing")
+Check(Cure({ purify = true, cleanse = true, kinds = { Poison = "Venom" } }) == "cleanse", "Cleanse known: Cleanse")
+Check(select(2, Cure({ purify = true, cleanse = true, kinds = { Magic = "Sleep", Poison = "V" } })) == "Magic", "magic first with Cleanse")
+Check(Cure({ purify = true, cleanse = true, kinds = { Curse = "Hex" } }) == nil, "curse: no paladin cure")
+Check(Cure({ kinds = { Poison = "Venom" } }) == nil, "no cure known: nothing")
+Check(Cure({ purify = true, curable = true, kinds = {} }) == "purify", "fields hidden but game says curable: Purify")
+Check(Cure({ enabled = false, purify = true, kinds = { Poison = "V" } }) == nil, "cure reminder off")
+list = R.Decide(Ctx({ cure = { enabled = true, purify = true, kinds = { Poison = "Venom" } }, rf = { enabled = true, known = true, status = "absent" } }))
+Check(Ids(list) == "cure,rf" and list[1].spell == "purify" and list[1].debuff == "Venom" and list[1].texture ~= nil, "cure tile first, with the spell icon")
 list = R.Decide(Ctx({ rf = { enabled = true, known = true, status = "hidden" } }))
 Check(#list == 0, "RF hidden: no reminder")
 list = R.Decide(Ctx({ rf = { enabled = true, known = nil, status = "absent" } }))

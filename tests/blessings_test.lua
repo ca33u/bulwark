@@ -126,3 +126,26 @@ Check(BulwarkDB.blessings.frames == true and BulwarkDB.blessings.panel == false,
 
 io.write(string.format("%d tests, %d failed\n", TESTS or 0, FAILED or 0))
 os.exit((FAILED or 0) == 0 and 0 or 1)
+-- log: why a blessing on you ended
+local old = { ["Blessing of Might"] = { name = "Blessing of Might", expires = 400, duration = 300, source = "Saz" } }
+local function Why(new, now, ctx) local r = B.LogDiff(old, new, now, ctx) return r[1] and r[1].why, r[1] end
+Check(Why({}, 399.5) == "expired", "log: ran out of time")
+Check(Why({}, 250) == "early", "log: gone 2:30 early, cause unknown")
+Check(Why({}, 250, { dead = true }) == "death", "log: death")
+Check(Why({}, 250, { dispels = { ["Blessing of Might"] = { by = "Kolkar Stormer", spell = "Purge" } } }) == "dispelled", "log: dispelled, with who")
+local w, e = Why({ ["Blessing of Sanctuary"] = { name = "Blessing of Sanctuary", expires = 550, source = "Saz" } }, 250)
+Check(w == "replaced" and e.with == "Blessing of Sanctuary", "log: replaced by your other blessing")
+Check(Why({ ["Blessing of Might"] = { name = "Blessing of Might", expires = 550, source = "Other" } }, 250) == "overwritten", "log: another paladin's Might")
+Check(#B.LogDiff(old, { ["Blessing of Might"] = { name = "Blessing of Might", expires = 700, source = "Saz" } }, 250) == 0, "log: refreshed by you is not a loss")
+Check(B.LogText({ name = "Blessing of Might", why = "early", left = 150 }):find("2:30"), "log line says how early")
+local fr = { { name = "Blessing of Freedom", by = "Saz", t = 249.5 } }
+local w2, e2 = Why({}, 250, { applied = fr })
+Check(w2 == "pushed" and e2.with == "Blessing of Freedom", "log: your Freedom pushed your Might off")
+local w3, e3 = Why({}, 250, { applied = { { name = "Blessing of Freedom", by = "Other", t = 249.5 } } })
+Check(w3 == "early" and e3.near == "Blessing of Freedom", "log: another paladin's Freedom is only noted")
+Check(Why({}, 250, { applied = { { name = "Blessing of Freedom", by = "Saz", t = 240 } } }) == "early", "log: an old cast is not blamed")
+Check(B.LogText(e2):find("Freedom"), "log line names what pushed it")
+local db = {}
+for i = 1, 45 do B.Remember(db, e3, 250, { applied = fr, date = "d" .. i }) end
+Check(#db.blessHistory == 40 and db.blessHistory[40].at == "d45" and db.blessHistory[40].around:find("Freedom"), "history keeps the last 40 with what was around")
+

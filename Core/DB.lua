@@ -47,7 +47,7 @@ ns.DEFAULTS = {
 
 	-- reminders and badges
 	warnRighteousFury = true, warnSeal = true, warnDevotion = true, warnForbearance = true,
-	warnBlessing = true,
+	warnBlessing = true, warnCleanse = true, warnPoints = true,
 	rfBadge = false, -- the separate RF icon; the red text already says it
 	soundSealDrop = true,
 	warnSize = 16, warnOffX = 0, warnOffY = 12, warnAlign = "center",

@@ -104,6 +104,9 @@ S.CATALOG = {
 		ids = { 20911, 20912, 20913, 20914, 25899 }, icon = "Spell_Nature_LightningShield" },
 
 	-- not on the line or the icon row
+	-- your cures: the reminder row says which one to press when a debuff is on you
+	purify = { name = "Purify", ids = { 1152 }, icon = "Spell_Holy_Purify" },
+	cleanse = { name = "Cleanse", ids = { 4987 }, icon = "Spell_Holy_Renew" },
 	devotion_aura = { name = "Devotion Aura", ids = { 465, 10290, 643, 10291, 1032, 10292, 10293 }, icon = "Spell_Holy_DevotionAura" },
 	forbearance = { name = "Forbearance", ids = { 25771 }, harmful = true, icon = "Spell_Holy_RemoveCurse" },
 	fire_res_aura = { name = "Fire Resistance Aura", ids = { 19891, 19899, 19900 }, resistAura = true },

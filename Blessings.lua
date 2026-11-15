@@ -22,6 +22,9 @@
   /bulwark blessingssolo    also show when you are not in a group
   /bulwark classicons       class icons before the blessings (default on)
   /bulwark blessingsdebug   list the party frames Bulwark found
+  /bulwark blesslog         chat log of why a blessing on you ended
+                            (ran out, replaced, overwritten, dispelled,
+                            death, or early with the cause unknown)
   The panel moves with /bulwark unlock like the rest of Bulwark.
 ]]
 
@@ -811,6 +814,237 @@ end
 -- Slash
 ------------------------------------------------------------------------
 
+------------------------------------------------------------------------
+-- Log: why a blessing on you ended
+------------------------------------------------------------------------
+
+-- Blessings on you: name -> { name, expires, duration, source (caster's
+-- name), mine }. nil when the game hides your auras right now.
+function B.ReadMine()
+	local api = _G.C_UnitAuras
+	if type(api) ~= "table" or type(api.GetAuraDataByIndex) ~= "function" then
+		return nil
+	end
+	local out = {}
+	for i = 1, 80 do
+		local ok, data = pcall(api.GetAuraDataByIndex, "player", i, "HELPFUL")
+		if not ok or IsSecret(data) then
+			return nil
+		end
+		if data == nil then
+			return out
+		end
+		local name = Field(data, "name")
+		if name == nil then
+			return nil
+		end
+		if B.IsLongBlessing(name) then
+			local src = Field(data, "sourceUnit")
+			local caster = src and Read(UnitName, src)
+			out[name] = {
+				name = name,
+				expires = Field(data, "expirationTime"),
+				duration = Field(data, "duration"),
+				source = caster,
+				mine = src and Read(UnitIsUnit, src, "player") or false,
+			}
+		end
+	end
+	return out
+end
+
+-- What happened to the blessings between two reads. Pure.
+--   old, new: B.ReadMine() results; now: GetTime()
+--   ctx: { dead = bool, dispels = { [name] = { by, spell } } }
+-- Returns { { name, why, left, lasted, by, with } }, why one of:
+--   "expired", "replaced" (the same caster put another blessing on you),
+--   "overwritten" (another caster's blessing of the same kind),
+--   "dispelled", "death", "pushed" (a short blessing from the same paladin
+--   took its place), "early" (gone before its time; e.near names what
+--   landed on you at that moment, when anything did)
+function B.LogDiff(old, new, now, ctx)
+	ctx = ctx or {}
+	local out = {}
+	for name, o in pairs(old or {}) do
+		local n = new[name]
+		local left = o.expires and o.expires > 0 and (o.expires - now) or nil
+		local lasted = o.duration and o.duration > 0 and left and (o.duration - left) or nil
+		if not n then
+			local e = { name = name, left = left, lasted = lasted }
+			local d = ctx.dispels and ctx.dispels[name]
+			if ctx.dead then
+				e.why = "death"
+			elseif d then
+				e.why, e.by, e.with = "dispelled", d.by, d.spell
+			elseif left and left <= 2 then
+				e.why = "expired"
+			else
+				for nn, x in pairs(new) do
+					if not old[nn] and x.source and x.source == o.source then
+						e.why, e.with = "replaced", nn
+					end
+				end
+				if not e.why then
+					-- one blessing per paladin per target: a short one (Freedom,
+					-- Protection, Sacrifice) from the same paladin pushes it off
+					for _, a in ipairs(ctx.applied or {}) do
+						if now - (a.t or 0) <= 2 and a.name ~= name then
+							local short = a.name:lower():find("^blessing of ") and not B.IsLongBlessing(a.name)
+							if short and a.by and a.by == o.source then
+								e.why, e.with = "pushed", a.name
+								break
+							end
+							e.near, e.nearBy = e.near or a.name, e.nearBy or a.by
+						end
+					end
+				end
+				e.why = e.why or "early"
+			end
+			out[#out + 1] = e
+		elseif n.source and o.source and n.source ~= o.source then
+			out[#out + 1] = { name = name, why = "overwritten", by = n.source, left = left, lasted = lasted }
+		end
+	end
+	table.sort(out, function(a, b) return a.name < b.name end)
+	return out
+end
+
+local function Clock(sec)
+	sec = math.max(0, math.floor((sec or 0) + 0.5))
+	return string.format("%d:%02d", math.floor(sec / 60), sec % 60)
+end
+
+-- The chat line for one entry.
+function B.LogText(e)
+	local left = e.left and e.left > 2 and string.format(T("%s before its time"), Clock(e.left)) or nil
+	local why
+	if e.why == "expired" then
+		why = T("ran out of time") .. (e.lasted and (" (" .. Clock(e.lasted) .. ")") or "")
+	elseif e.why == "replaced" then
+		why = string.format(T("replaced by %s from the same paladin"), e.with or "?")
+	elseif e.why == "overwritten" then
+		why = string.format(T("overwritten by %s's blessing"), e.by or "?")
+	elseif e.why == "dispelled" then
+		why = string.format(T("dispelled by %s (%s)"), e.by or "?", e.with or "?")
+	elseif e.why == "death" then
+		why = T("you died")
+	elseif e.why == "pushed" then
+		why = string.format(T("pushed off by %s from the same paladin (one blessing per paladin)"), e.with or "?")
+	elseif e.near then
+		why = string.format(T("removed early just as %s landed (%s)"), e.near, e.nearBy or "?")
+	else
+		why = T("removed early, cause unknown")
+	end
+	return string.format("%s: %s", e.name, why) .. (left and e.why ~= "expired" and (", " .. left) or "")
+end
+
+local logState, dispels, applied = nil, {}, {}
+
+-- Saved history, so a vanished blessing can be looked at after the fact.
+local HISTORY_MAX = 40
+function B.Remember(db, e, now, extra)
+	if type(db) ~= "table" then
+		return
+	end
+	db.blessHistory = db.blessHistory or {}
+	local h = db.blessHistory
+	local seen = {}
+	for _, a in ipairs((extra and extra.applied) or {}) do
+		if now - (a.t or 0) <= 3 then
+			seen[#seen + 1] = string.format("%s (%s, %s)", a.name or "?", a.by or "?", a.kind or "?")
+		end
+	end
+	h[#h + 1] = {
+		at = extra and extra.date or "?",
+		zone = extra and extra.zone or "?",
+		combat = extra and extra.combat or false,
+		text = B.LogText(e),
+		why = e.why,
+		around = table.concat(seen, "; "),
+	}
+	while #h > HISTORY_MAX do
+		table.remove(h, 1)
+	end
+end
+
+local function LogOn()
+	return BulwarkDB and BulwarkDB.blessLog ~= false
+end
+
+local function LogCheck()
+	if not LogOn() then
+		logState = nil
+		return
+	end
+	local now = Read(GetTime) or 0
+	local cur = B.ReadMine()
+	if not cur then
+		return -- hidden right now: compare when it is readable again
+	end
+	if logState then
+		local dead = Read(UnitIsDeadOrGhost, "player") and true or false
+		for _, e in ipairs(B.LogDiff(logState, cur, now, { dead = dead, dispels = dispels, applied = applied })) do
+			print(PREFIX .. "|cffffd100" .. B.LogText(e) .. "|r")
+			if e.why ~= "expired" then
+				B.Remember(BulwarkDB, e, now, {
+					applied = applied,
+					date = date and date("%m-%d %H:%M:%S") or "?",
+					zone = Read(GetRealZoneText) or "?",
+					combat = Read(UnitAffectingCombat, "player") and true or false,
+				})
+			end
+		end
+	end
+	logState = cur
+	for k, d in pairs(dispels) do
+		if now - (d.t or 0) > 5 then
+			dispels[k] = nil
+		end
+	end
+	for i = #applied, 1, -1 do
+		if now - (applied[i].t or 0) > 5 then
+			table.remove(applied, i)
+		end
+	end
+end
+
+local logFrame = CreateFrame("Frame")
+logFrame:SetScript("OnEvent", function(_, event, unit)
+	if event == "COMBAT_LOG_EVENT_UNFILTERED" then
+		if not (LogOn() and CombatLogGetCurrentEventInfo) then
+			return
+		end
+		local ok, _, sub, _, _, srcName, _, _, destGUID, _, _, _, _, spellName, _, _, extraName = pcall(CombatLogGetCurrentEventInfo)
+		if not ok or IsSecret(sub) or IsSecret(destGUID) then
+			return
+		end
+		local me = Read(UnitGUID, "player")
+		if (sub == "SPELL_AURA_APPLIED" or sub == "SPELL_AURA_REFRESH") and destGUID == me and type(spellName) == "string" and not IsSecret(spellName) then
+			applied[#applied + 1] = { name = spellName, by = not IsSecret(srcName) and srcName or "?", t = Read(GetTime) or 0, kind = "aura" }
+		elseif sub == "SPELL_CAST_SUCCESS" and type(spellName) == "string" and not IsSecret(spellName) and Read(UnitName, "player") == srcName then
+			applied[#applied + 1] = { name = spellName, by = srcName, t = Read(GetTime) or 0, kind = "your cast" }
+		end
+		while #applied > 30 do
+			table.remove(applied, 1)
+		end
+		if (sub == "SPELL_DISPEL" or sub == "SPELL_STOLEN") and destGUID == Read(UnitGUID, "player") and type(extraName) == "string" and not IsSecret(extraName) then
+			dispels[extraName] = { by = not IsSecret(srcName) and srcName or "?", spell = not IsSecret(spellName) and spellName or "?", t = Read(GetTime) or 0 }
+		end
+		return
+	end
+	if event == "UNIT_AURA" and unit ~= "player" then
+		return
+	end
+	LogCheck()
+end)
+for _, e in ipairs({ "UNIT_AURA", "PLAYER_DEAD", "PLAYER_REGEN_ENABLED", "PLAYER_ENTERING_WORLD", "COMBAT_LOG_EVENT_UNFILTERED" }) do
+	pcall(logFrame.RegisterEvent, logFrame, e)
+end
+-- expiry while the auras are hidden is caught on the next readable check
+if C_Timer and C_Timer.NewTicker then
+	C_Timer.NewTicker(1, LogCheck)
+end
+
 local previous = SlashCmdList and SlashCmdList.BULWARK
 if previous then
 	SlashCmdList.BULWARK = function(msg)
@@ -830,6 +1064,18 @@ if previous then
 			d.frames = not d.frames
 			print(PREFIX .. T("blessing icons on party frames:"), d.frames and T("on") or T("off"))
 			B.Refresh()
+			return
+		elseif cmd == "blesslog" then
+			BulwarkDB.blessLog = BulwarkDB.blessLog == false
+			print(PREFIX .. T("log of your blessings ending:"), BulwarkDB.blessLog and T("on") or T("off"))
+			return
+		elseif cmd == "blesshistory" then
+			local h = BulwarkDB.blessHistory or {}
+			print(PREFIX .. string.format(T("blessings that ended early: %d"), #h))
+			for i = math.max(1, #h - 9), #h do
+				local x = h[i]
+				print(string.format("  %s %s: %s", x.at or "?", x.zone or "?", x.text or "?"))
+			end
 			return
 		elseif cmd == "blessingsdebug" then
 			local list = B.PartyFrames()
@@ -852,7 +1098,7 @@ if previous then
 		end
 		previous(msg)
 		if cmd == "" or cmd == "help" then
-			print(T("  |cffaaaaaa/bulwark|r blessings | blessingsframes | blessingspanel | blessingssolo | classicons | blessingsdebug"))
+			print(T("  |cffaaaaaa/bulwark|r blessings | blessingsframes | blessingspanel | blessingssolo | classicons | blessingsdebug | blesslog | blesshistory"))
 		end
 	end
 end

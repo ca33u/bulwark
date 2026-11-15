@@ -379,6 +379,8 @@ do
 	CheckKey(p, 1, "warnSeal", T("Seal missing"))
 	CheckKey(p, 1, "warnDevotion", T("No aura active"))
 	CheckKey(p, 1, "warnBlessing", T("No blessing on yourself"))
+	CheckKey(p, 1, "warnCleanse", T("Debuff you can cure: which spell to press"))
+	CheckKey(p, 1, "warnPoints", T("Talent and legacy points to spend (out of combat)"))
 	CheckKey(p, 1, "warnForbearance", T("Forbearance"))
 	CheckKey(p, 1, "soundSealDrop", T("Sound when Seal of Fury drops in combat"))
 

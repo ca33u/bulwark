@@ -449,3 +449,71 @@ ns.Every(0.1, function(elapsed)
 		A.Update()
 	end
 end)
+
+------------------------------------------------------------------------
+-- Debuffs you can cure (for the "press Purify / Cleanse" reminder)
+------------------------------------------------------------------------
+
+A.CURE_KINDS = { Magic = true, Poison = true, Disease = true, Curse = true }
+
+-- What is on you right now. Returns
+--   { kinds = { Poison = "debuff name", ... }, curable = bool, hidden = bool }
+-- kinds: debuff types the game told us (with the first debuff's name).
+-- curable: the game's own "you can cure this" filter found something; it
+-- works even when the debuff's fields are secret, so the hint still shows.
+function A.Debuffs()
+	local out = { kinds = {}, curable = false, hidden = false }
+	local api = _G.C_UnitAuras
+	if type(api) == "table" and type(api.GetAuraDataByIndex) == "function" then
+		for i = 1, 40 do
+			local ok, data = pcall(api.GetAuraDataByIndex, "player", i, "HARMFUL")
+			if not ok then
+				out.hidden = true
+				break
+			end
+			if data == nil then
+				break
+			end
+			if G.IsSecret(data) then
+				out.hidden = true
+			else
+				local kind = G.Str(G.Field(data, "dispelName"))
+				if kind and A.CURE_KINDS[kind] and not out.kinds[kind] then
+					out.kinds[kind] = G.Str(G.Field(data, "name")) or kind
+				end
+			end
+		end
+		for i = 1, 40 do
+			local ok, data = pcall(api.GetAuraDataByIndex, "player", i, "HARMFUL|RAID")
+			if not ok or data == nil then
+				break
+			end
+			out.curable = true
+			break
+		end
+		return out
+	end
+	local fn = _G.UnitDebuff
+	if type(fn) ~= "function" then
+		out.hidden = true
+		return out
+	end
+	for i = 1, 40 do
+		local r = G.ReadAll(fn, "player", i)
+		if not r then
+			out.hidden = true
+			break
+		end
+		if r[1] == nil and not r.hidden then
+			break
+		end
+		if r.hidden then
+			out.hidden = true
+		end
+		local kind = G.Str(r[4])
+		if kind and A.CURE_KINDS[kind] and not out.kinds[kind] then
+			out.kinds[kind] = G.Str(r[1]) or kind
+		end
+	end
+	return out
+end

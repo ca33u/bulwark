@@ -33,8 +33,53 @@ ns.Reminders = R
 --   spec = "PROTECTION" / other / nil (unknown)
 -- }
 -- Returns a list of { id, text } and the badges { rf = bool, forbearance = bool }.
+-- Which of your cures removes a debuff on you. Pure: cure = {
+--   enabled, purify, cleanse (known: true/false/nil),
+--   kinds = { Poison = "debuff name", ... }, curable = bool }
+-- Cleanse takes Magic, Poison and Disease; Purify only Poison and Disease.
+-- Curses: a paladin has no cure, so nothing is shown.
+-- Returns spell key, debuff type (or nil when only "curable" is known), debuff name.
+function R.Cure(cure)
+	if not (cure and cure.enabled) then
+		return nil
+	end
+	local kinds = cure.kinds or {}
+	if cure.cleanse == true then
+		for _, k in ipairs({ "Magic", "Poison", "Disease" }) do
+			if kinds[k] then
+				return "cleanse", k, kinds[k]
+			end
+		end
+	end
+	if cure.purify == true then
+		for _, k in ipairs({ "Poison", "Disease" }) do
+			if kinds[k] then
+				return "purify", k, kinds[k]
+			end
+		end
+	end
+	-- the debuff's fields were hidden, but the game says you can cure it
+	if cure.curable then
+		if cure.cleanse == true then
+			return "cleanse"
+		elseif cure.purify == true then
+			return "purify"
+		end
+	end
+	return nil
+end
+
+R.KIND_TEXT = { Magic = "Magic", Poison = "Poison", Disease = "Disease" }
+
 function R.Decide(ctx)
 	local list, badges = {}, { rf = false, forbearance = false }
+	-- a debuff you can cure comes first: it is the one to act on now
+	local cureKey, kind, debuff = R.Cure(ctx.cure)
+	if cureKey then
+		list[#list + 1] = { id = "cure", spell = cureKey, kind = kind, debuff = debuff,
+			text = string.format(T("Press %s"), S.DisplayName(cureKey)) .. (kind and (" (" .. T(R.KIND_TEXT[kind]) .. ")") or ""),
+			texture = S.Get(cureKey).icon }
+	end
 	local rf = ctx.rf or {}
 	if rf.enabled and rf.known == true and rf.status == "absent" then
 		-- the game's own Righteous Fury icon: everyone knows it
@@ -66,6 +111,128 @@ function R.Decide(ctx)
 		badges.forbearance = true
 	end
 	return list, badges
+end
+
+------------------------------------------------------------------------
+-- Points to spend: talents and Forever's legacy trees
+------------------------------------------------------------------------
+
+R.TALENT_ICON = "Interface\\Icons\\INV_Misc_Book_11"
+R.LEGACY_ICON = "Interface\\Icons\\INV_Misc_Rune_01"
+R.legacy = { searched = false, fn = nil, from = nil, currency = nil, names = {} }
+
+-- Unspent talent points (0 when the game does not say).
+function R.TalentPoints()
+	local n = G.Read(UnitCharacterPoints, "player")
+	if type(n) ~= "number" then
+		n = G.Read(GetUnspentTalentPoints)
+	end
+	return type(n) == "number" and n > 0 and n or 0
+end
+
+local WORDS = { "unspent", "available", "remaining", "free", "spendable", "unused" }
+
+-- Does a function name look like "how many legacy points can I spend"?
+function R.LooksLikeUnspent(fname)
+	local lf = type(fname) == "string" and fname:lower() or ""
+	if not lf:find("point") then
+		return false
+	end
+	for _, w in ipairs(WORDS) do
+		if lf:find(w) then
+			return true
+		end
+	end
+	return false
+end
+
+-- Forever does not document how addons read legacy points, so Bulwark
+-- looks once: functions with "legacy" in their name (global, or inside a
+-- C_ table), then a currency called Legacy. /bulwark legacy shows what
+-- it found.
+function R.FindLegacy()
+	local L = R.legacy
+	L.searched, L.names, L.fn, L.from, L.currency = true, {}, nil, nil, nil
+	local function Try(label, fname, fn)
+		L.names[#L.names + 1] = label
+		if not L.fn and R.LooksLikeUnspent(fname) then
+			local v = G.Read(fn)
+			if type(v) == "number" then
+				L.fn, L.from = fn, label
+			end
+		end
+	end
+	for name, t in pairs(_G) do
+		if type(name) == "string" and name:lower():find("legacy") then
+			if type(t) == "function" then
+				Try(name, name, t)
+			elseif type(t) == "table" and name:find("^C_") then
+				for fname, fn in pairs(t) do
+					if type(fn) == "function" then
+						Try(name .. "." .. fname, fname, fn)
+					end
+				end
+			end
+		end
+	end
+	local CI = C_CurrencyInfo
+	if not L.fn and CI and CI.GetCurrencyListSize and CI.GetCurrencyListInfo then
+		for i = 1, G.Read(CI.GetCurrencyListSize) or 0 do
+			local info = G.Read(CI.GetCurrencyListInfo, i)
+			if type(info) == "table" and not info.isHeader and type(info.name) == "string" and info.name:lower():find("legacy") then
+				L.currency = i
+				L.names[#L.names + 1] = "currency: " .. info.name
+				break
+			end
+		end
+	end
+	table.sort(L.names)
+end
+
+-- Legacy points you can spend now, or nil when the game does not say.
+function R.LegacyPoints()
+	local L = R.legacy
+	if not L.searched then
+		R.FindLegacy()
+	end
+	local v
+	if L.fn then
+		v = G.Read(L.fn)
+	elseif L.currency and C_CurrencyInfo then
+		local info = G.Read(C_CurrencyInfo.GetCurrencyListInfo, L.currency)
+		v = type(info) == "table" and info.quantity or nil
+	end
+	return type(v) == "number" and v or nil
+end
+
+function R.LegacyReport()
+	local L = R.legacy
+	R.FindLegacy()
+	ns.Print(T("legacy points:") .. " " .. tostring(R.LegacyPoints() or "?") .. (L.from and ("  (" .. L.from .. ")") or ""))
+	if #L.names == 0 then
+		ns.Print(T("the game shows addons nothing named Legacy."))
+	end
+	for _, n in ipairs(L.names) do
+		ns.Print("  " .. n)
+	end
+	ns.Print(T("talent points:") .. " " .. R.TalentPoints())
+end
+
+-- Tiles for points you have not spent; only out of combat.
+function R.PointTiles(ctx)
+	local out = {}
+	if not ctx.enabled or ctx.combat then
+		return out
+	end
+	if (ctx.talents or 0) > 0 then
+		out[#out + 1] = { id = "talents", count = ctx.talents, texture = R.TALENT_ICON,
+			text = string.format(T("%d talent points to spend"), ctx.talents) }
+	end
+	if (ctx.legacy or 0) > 0 then
+		out[#out + 1] = { id = "legacy", count = ctx.legacy, texture = R.LEGACY_ICON,
+			text = string.format(T("%d legacy points to spend"), ctx.legacy) }
+	end
+	return out
 end
 
 ------------------------------------------------------------------------
@@ -135,6 +302,23 @@ local function SealExpired(now)
 	return last ~= nil and last.reason == "expired" and now - last.at < 60
 end
 
+local function A_Debuffs()
+	local A = ns.Auras
+	if A and A.Debuffs then
+		return A.Debuffs()
+	end
+	return { kinds = {}, curable = false }
+end
+
+local function CureContext(db)
+	if not db.warnCleanse then
+		return { enabled = false }
+	end
+	local d = A_Debuffs()
+	return { enabled = true, purify = S.IsKnown("purify"), cleanse = S.IsKnown("cleanse"),
+		kinds = d.kinds, curable = d.curable }
+end
+
 function R.Context(now)
 	local db = ns.DB()
 	local A = ns.Auras
@@ -154,6 +338,7 @@ function R.Context(now)
 		dev = { enabled = db.warnDevotion, known = AnyAuraKnown(), aura = aura },
 		forb = { enabled = db.warnForbearance, status = A.Status("forbearance") },
 		bless = { enabled = db.warnBlessing, known = AnyKnown(S.BLESSINGS), status = BlessingStatus() },
+		cure = CureContext(db),
 	}
 end
 
@@ -180,6 +365,9 @@ R.LOOK = {
 	seal = { brand = "ember", title = "Seal", desc = "No seal on you. Judgement and much of your damage need one." },
 	aura = { brand = "tide", title = "Aura", desc = "No paladin aura active. Any aura counts." },
 	blessing = { brand = "arcane", title = "Blessing", desc = "No blessing on yourself. Any of yours counts." },
+	cure = { brand = "tide", title = "Cure", desc = "A debuff on you that this spell removes. Press it." },
+	talents = { brand = "gold", title = "Talent points", steady = true, desc = "You have talent points to spend. Click to open your talents." },
+	legacy = { brand = "arcane", title = "Legacy points", steady = true, desc = "You have legacy points to spend in the legacy trees." },
 	forb = { brand = "ember", title = "Forbearance", steady = true,
 		desc = "Divine Shield, Divine Protection, Blessing of Protection and Lay on Hands cannot be used on you until it fades." },
 }
@@ -191,9 +379,21 @@ local function TileEnter(self)
 		return
 	end
 	GameTooltip:SetOwner(self, "ANCHOR_TOP")
+	if item.id == "cure" then
+		GameTooltip:AddLine(string.format(T("Press %s"), S.DisplayName(item.spell)), 1, 0.82, 0)
+		if item.debuff then
+			GameTooltip:AddLine(string.format(T("On you: %s (%s)"), item.debuff, T(R.KIND_TEXT[item.kind] or item.kind)), 1, 1, 1, true)
+		else
+			GameTooltip:AddLine(T("A debuff on you that this spell removes."), 1, 1, 1, true)
+		end
+		GameTooltip:Show()
+		return
+	end
 	GameTooltip:AddLine(T(look.title), 1, 0.82, 0)
 	GameTooltip:AddLine(T(look.desc), 1, 1, 1, true)
-	if item.id == "forb" then
+	if item.count then
+		GameTooltip:AddLine(item.text, 1, 0.82, 0)
+	elseif item.id == "forb" then
 		local left = item.expires and item.expires - G.Now()
 		if left and left > 0 then
 			GameTooltip:AddLine(string.format(T("%s left"), ns.Line.FormatTime(left)), 1, 0.3, 0.25)
@@ -231,6 +431,11 @@ local function Tile(i)
 	t:EnableMouse(true)
 	t:SetScript("OnEnter", TileEnter)
 	t:SetScript("OnLeave", function() GameTooltip:Hide() end)
+	t:SetScript("OnMouseUp", function(self)
+		if self.item and self.item.id == "talents" and not G.InCombat() then
+			G.Call(ToggleTalentFrame)
+		end
+	end)
 	t:Hide()
 	tiles[i] = t
 	return t
@@ -268,7 +473,7 @@ function R.ShowIcons(list, now)
 		t.time:SetText(left and left > 0 and ns.Line.FormatTime(left) or "")
 		-- a seal that just ran out gets a small "!"
 		W.SetFontSize(t.mark, math.max(10, math.floor(size / 2.6)))
-		t.mark:SetText(item.expired and "|cffffd100!|r" or "")
+		t.mark:SetText(item.expired and "|cffffd100!|r" or item.count and ("|cffffd100" .. item.count .. "|r") or "")
 		t:Show()
 	end
 	for i = #list + 1, #tiles do
@@ -337,7 +542,7 @@ function R.Render()
 	local preview = movers and (movers.unlocked or movers.testing)
 	local list, badges
 	if preview then
-		list = { { id = "rf", text = T("Righteous Fury missing"), texture = S.Get("righteous_fury").icon }, { id = "seal", text = T("Seal missing"), icon = "seal" }, { id = "aura", text = T("No aura active"), icon = "aura" }, { id = "blessing", text = T("No blessing on yourself"), icon = "blessing" } }
+		list = { { id = "cure", spell = "purify", kind = "Poison", debuff = "Poison", text = string.format(T("Press %s"), S.DisplayName("purify")), texture = S.Get("purify").icon }, { id = "rf", text = T("Righteous Fury missing"), texture = S.Get("righteous_fury").icon }, { id = "seal", text = T("Seal missing"), icon = "seal" }, { id = "aura", text = T("No aura active"), icon = "aura" }, { id = "blessing", text = T("No blessing on yourself"), icon = "blessing" } }
 		badges = { rf = true, forbearance = true }
 	elseif G.IsPaladin() and G.ShouldShow(db, "warn", "warningsOnlyInCombat", G.PlayerState()) then
 		list, badges = R.Decide(R.Context(now))
@@ -356,6 +561,20 @@ function R.Render()
 			expires = fd and fd.expires or (preview and now + 42) or nil }
 	end
 
+	-- then points you have not spent yet (out of combat)
+	local points
+	if preview then
+		points = R.PointTiles({ enabled = true, talents = 2, legacy = 1 })
+	elseif G.IsPaladin() then
+		points = R.PointTiles({ enabled = db.warnPoints, combat = G.InCombat(),
+			talents = R.TalentPoints(), legacy = R.LegacyPoints() })
+	else
+		points = {}
+	end
+	for _, item in ipairs(points) do
+		row[#row + 1] = item
+	end
+
 	R.row = row
 	if db.warnIcons then
 		warn.text:SetText("")
@@ -366,6 +585,9 @@ function R.Render()
 		local lines = {}
 		for i, item in ipairs(list) do
 			lines[i] = item.text
+		end
+		for _, item in ipairs(points) do
+			lines[#lines + 1] = item.text
 		end
 		warn.text:SetText(table.concat(lines, "\n"))
 		warn:SetShown(#lines > 0)
